@@ -1,0 +1,795 @@
+<div class="ui-header">
+	<p class="ui-title">What should a payment do to Rex: slow him down, or put steps between you?</p>
+	<p class="ui-sub">
+		Slow him is the rule from the first mock. Outrun him is the proposed replacement. Make a payment
+		in each scenario under both rules, then pay from outside the app. Debts and amounts are sample
+		data.
+	</p>
+</div>
+<div class="ui-stack" style="--gap: 8px; margin-bottom: 12px">
+	<div class="ui-row" style="flex-wrap: wrap">
+		<div class="ui-seg" id="rule" aria-label="Rule">
+			<button data-value="outrun" aria-selected="true">Outrun him</button>
+			<button data-value="slow">Slow him</button>
+		</div>
+		<div class="ui-seg" id="where" aria-label="Where you pay">
+			<button data-value="app" aria-selected="true">In the app</button>
+			<button data-value="out">Outside the app</button>
+		</div>
+	</div>
+	<div class="ui-row" style="justify-content: space-between; flex-wrap: wrap">
+		<div class="ui-seg" id="scene" aria-label="Scenario">
+			<button data-value="morning">Morning</button>
+			<button data-value="evening" aria-selected="true">Evening</button>
+			<button data-value="short">After a short day</button>
+		</div>
+		<button class="ui-btn sm" id="reset"><i data-icon="play" class="sm"></i>Reset</button>
+	</div>
+	<label class="ui-row" style="max-width: 340px">
+		<span class="ui-label" style="white-space: nowrap">Time of day</span>
+		<input class="ui-range" id="time" type="range" min="6" max="24" step="0.5" value="18" style="flex: 1; min-width: 0" />
+		<span class="ui-label ui-num" id="timeLabel" style="width: 58px; text-align: right"></span>
+	</label>
+	<p class="ui-muted" id="tradeoff" style="text-wrap: pretty; max-width: 65ch"></p>
+</div>
+<div class="ptm-layout">
+	<div class="phone" id="phone"></div>
+	<div class="ui-stack" id="notes" style="--gap: 12px; align-content: start"></div>
+</div>
+<p class="ui-caption" style="margin-top: 12px; text-wrap: pretty">
+	Also considered: one raptor per debt, so paying off a debt drops a chaser (crowded past three or
+	four debts, and no single gap for a widget), and a Rex who hangs back and sprints at the end
+	(honest about midnight, but nobody could predict what a payment buys).
+</p>
+<style>
+	@font-face {
+		font-family: 'PTM Slab';
+		src: url(data:font/woff2;base64,{{FONT_SLAB}}) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	#notes p {
+		margin: 0;
+		text-wrap: pretty;
+		max-width: 46ch;
+	}
+	#notes table {
+		max-width: 300px;
+		margin-top: 4px;
+	}
+	.phone {
+		--f-slab: 'PTM Slab', Rockwell, 'Arial Black', serif;
+		--f-round: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		height: 504px;
+		border-radius: 30px;
+		overflow: hidden;
+		position: relative;
+		box-shadow: 0 0 0 1px var(--border);
+		-webkit-user-select: none;
+		user-select: none;
+	}
+	.phone.bare {
+		height: auto;
+		border-radius: 0;
+		overflow: visible;
+		box-shadow: none;
+	}
+	.phone button {
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.phone button:focus-visible {
+		outline: 3px solid #2f6bff;
+		outline-offset: 2px;
+	}
+	.phone button:disabled {
+		cursor: default;
+	}
+	.phone .b:disabled {
+		opacity: 0.45;
+	}
+
+	/* ---------- the app ---------- */
+	.chase {
+		--ink: #1d1a2f;
+		--sand: #f6d98f;
+		--green: #3fbf6a;
+		--paper: #fffaf0;
+		height: 100%;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--f-round);
+		font-size: 14px;
+		line-height: 1.25;
+		display: flex;
+		flex-direction: column;
+	}
+	.chase .scene {
+		--rw: 116px;
+		--yw: 36px;
+		--gh: 44px;
+		--ow: 32px;
+		--amp: 92px;
+		--youx: 68%;
+		height: 176px;
+		flex: none;
+		position: relative;
+		overflow: hidden;
+		border-bottom: 3px solid var(--ink);
+	}
+	.chase .scene.mini {
+		--rw: 60px;
+		--yw: 19px;
+		--gh: 22px;
+		--ow: 18px;
+		--amp: 44px;
+		height: 92px;
+		border-bottom-width: 2.5px;
+	}
+	.chase .stars {
+		position: absolute;
+		inset: 0 0 var(--gh);
+		background:
+			radial-gradient(circle at 12% 22%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 34% 48%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 52% 16%, #fff 0 2px, transparent 2.5px),
+			radial-gradient(circle at 71% 40%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 90% 20%, #fff 0 1.5px, transparent 2px);
+	}
+	.chase .orb {
+		position: absolute;
+		box-sizing: border-box;
+		width: var(--ow);
+		height: var(--ow);
+		margin-left: calc(var(--ow) / -2);
+		border-radius: 50%;
+		border: 3px solid var(--ink);
+		bottom: calc(var(--gh) * 0.68 + var(--rise) * var(--amp));
+	}
+	.chase .ground {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: var(--gh);
+		background:
+			repeating-linear-gradient(90deg, var(--ink) 0 10px, transparent 10px 46px) 0
+				calc(var(--gh) * 0.32) / 100% 3px no-repeat,
+			repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 70px) 24px
+				calc(var(--gh) * 0.64) / 100% 3px no-repeat,
+			var(--sand);
+		border-top: 3px solid var(--ink);
+	}
+	.chase .rex {
+		position: absolute;
+		bottom: calc(var(--gh) * 0.68);
+		width: var(--rw);
+		left: calc(var(--d) * var(--rw) * -0.9 + (1 - var(--d)) * (var(--youx) - var(--rw) * 0.86));
+	}
+	.chase .you {
+		position: absolute;
+		bottom: calc(var(--gh) * 0.7);
+		left: var(--youx);
+		width: var(--yw);
+		z-index: 1;
+	}
+	.chase .rex svg,
+	.chase .you svg {
+		display: block;
+		width: 100%;
+	}
+	.chase .readout {
+		padding: 12px 16px 8px;
+		border-bottom: 2px dashed rgb(29 26 47 / 0.2);
+	}
+	.chase .head,
+	.widget b {
+		font-family: var(--f-slab);
+		font-weight: 400;
+		font-size: 23px;
+		line-height: 1.05;
+		font-variant-numeric: tabular-nums;
+		transform-origin: 0 50%;
+	}
+	.chase .bad {
+		color: #d63a1e;
+	}
+	.chase .good {
+		color: #17804a;
+	}
+	.chase .sub {
+		margin-top: 4px;
+		min-height: 35px;
+	}
+	.chase .undo {
+		border: 0;
+		background: none;
+		padding: 4px 0;
+		margin: -4px 0;
+		font-weight: 700;
+		text-decoration: underline;
+	}
+	.chase .rows {
+		padding: 0 16px;
+	}
+	.chase .row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 8px 0;
+	}
+	.chase .row:not(:first-child) {
+		border-top: 2px dashed rgb(29 26 47 / 0.14);
+	}
+	.chase .who {
+		flex: 1;
+		min-width: 0;
+		display: block;
+		text-align: left;
+		background: none;
+		border: 0;
+		padding: 0;
+	}
+	.chase .nm {
+		display: block;
+		font-weight: 700;
+		font-size: 16px;
+	}
+	.chase .who:not(:disabled) .nm::after {
+		content: '';
+		display: inline-block;
+		margin-left: 6px;
+		border: 5px solid transparent;
+		border-top-color: currentColor;
+		border-bottom-width: 0;
+		vertical-align: middle;
+	}
+	.chase .who[aria-expanded='true'] .nm::after {
+		transform: rotate(180deg);
+	}
+	.chase .num {
+		font-variant-numeric: tabular-nums;
+	}
+	.chase .acts {
+		display: flex;
+		gap: 6px;
+		flex: none;
+	}
+	.chase .pb {
+		height: 40px;
+		min-width: 52px;
+		padding: 0 12px;
+		border-radius: 12px;
+		border: 2.5px solid var(--ink);
+		background: var(--paper);
+		box-shadow: 0 3px 0 var(--ink);
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.chase .pb.rest {
+		background: var(--green);
+	}
+	.chase .pb:active:not(:disabled) {
+		transform: translateY(3px);
+		box-shadow: none;
+	}
+	.chase .paid {
+		font-weight: 700;
+		color: #17804a;
+	}
+	.chase .custom {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 0 0 11px;
+	}
+	.chase .custom .lbl {
+		margin-right: auto;
+		font-size: 13px;
+		white-space: nowrap;
+	}
+	.chase .custom output {
+		min-width: 28px;
+		text-align: center;
+		font-weight: 700;
+		font-size: 16px;
+		font-variant-numeric: tabular-nums;
+	}
+	.chase .sq {
+		width: 36px;
+		height: 38px;
+		padding: 0;
+		border-radius: 12px;
+		border: 2.5px solid var(--ink);
+		background: var(--paper);
+		font-weight: 700;
+		font-size: 18px;
+		line-height: 1;
+	}
+
+	/* ---------- outside the app ---------- */
+	.out {
+		display: grid;
+		gap: 6px;
+		font-family: var(--f-round);
+	}
+	.out > .ui-label {
+		margin: 8px 0 0;
+	}
+	.out > .ui-label:first-child {
+		margin-top: 0;
+	}
+	.widget.chase {
+		height: auto;
+		display: block;
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+	}
+	.widget .wrow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 10px 12px 12px;
+	}
+	.widget b {
+		display: block;
+		font-size: 20px;
+		white-space: nowrap;
+	}
+	.widget .wrow > div:first-child {
+		flex: none;
+	}
+	.widget .wbtns {
+		display: flex;
+		gap: 6px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	.widget .wbtns button {
+		height: 38px;
+		padding: 0 9px;
+		border-radius: 19px;
+		border: 2.5px solid var(--ink);
+		background: var(--green);
+		font-weight: 700;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+	.says {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.says button {
+		height: 38px;
+		padding: 0 13px;
+		border-radius: 19px;
+		border: 0;
+		background: var(--muted);
+		color: var(--foreground);
+		font-size: 13px;
+	}
+	.sc,
+	.note {
+		background: #f2f2f7;
+		color: #1c1c1e;
+		font-size: 15px;
+		line-height: 1.3;
+	}
+	.sc {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		border-radius: 14px;
+		padding: 10px 12px;
+	}
+	.sc .tok {
+		display: inline-flex;
+		align-items: center;
+		height: 34px;
+		padding: 0 10px;
+		border: 0;
+		border-radius: 9px;
+		background: rgb(10 108 255 / 0.14);
+		color: #0a5ad6;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+	.sc .tok.amt {
+		padding: 0 2px;
+	}
+	.sc .tok.amt button {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		border: 0;
+		background: none;
+		font-size: 18px;
+	}
+	.sc .run {
+		margin-left: auto;
+		height: 34px;
+		padding: 0 16px;
+		border: 0;
+		border-radius: 17px;
+		background: #0a6cff;
+		color: #fff;
+		font-weight: 600;
+	}
+	.note {
+		display: flex;
+		gap: 10px;
+		align-items: flex-start;
+		border-radius: 18px;
+		padding: 10px 12px;
+		font-size: 14px;
+	}
+	.note b {
+		display: block;
+		font-weight: 600;
+	}
+	.appicon {
+		width: 30px;
+		height: 30px;
+		flex: none;
+		border-radius: 7px;
+		background: #f6d98f;
+		display: grid;
+		place-items: center;
+		overflow: hidden;
+	}
+	.appicon svg {
+		width: 30px;
+		display: block;
+		transform: translate(-7px, 5px) scale(1.5);
+	}
+	.out .empty {
+		margin: 0;
+		padding: 6px 0;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.chase .rex.knock {
+			animation: ptm-knock 0.5s cubic-bezier(0.3, 1.5, 0.6, 1);
+		}
+		.chase .rex.run svg,
+		.chase .you.run svg {
+			animation: ptm-bob 0.3s steps(2) infinite alternate;
+		}
+		.chase .you.run svg {
+			animation-delay: 0.15s;
+		}
+		.chase .head.pop,
+		.widget b.pop {
+			animation: ptm-pop 0.2s ease-out;
+		}
+	}
+	@keyframes ptm-knock {
+		from {
+			left: calc(var(--d0) * var(--rw) * -0.9 + (1 - var(--d0)) * (var(--youx) - var(--rw) * 0.86));
+		}
+	}
+	@keyframes ptm-bob {
+		to {
+			transform: translateY(-4px);
+		}
+	}
+	@keyframes ptm-pop {
+		from {
+			transform: scale(0.94);
+		}
+	}
+</style>
+<script>
+	{
+		const el = (id) => document.getElementById(id)
+		const DAWN = 6
+		const MIDNIGHT = 24
+		// Steps Rex takes between dawn and midnight, and what a full day's dues are worth.
+		const DAY = 100
+		const scenes = {
+			morning: { time: 7, paid: [0, 0, 0], lead: 1 },
+			evening: { time: 18, paid: [10, 30, 0], lead: 1 },
+			short: { time: 9, paid: [0, 0, 0], lead: 0.4 },
+		}
+		const fresh = (paid) => [
+			{ id: 'push', name: 'Pushups', unit: 'pushups', total: 50, step: 10, paid: paid[0] },
+			{ id: 'work', name: 'Workout', unit: 'min', total: 30, step: 10, paid: paid[1] },
+			{ id: 'read', name: 'Reading', unit: 'pages', total: 20, step: 5, paid: paid[2] },
+		]
+		const state = { rule: 'outrun', where: 'app', scene: 'evening', fx: null }
+
+		const owed = (d) => d.total - d.paid
+		const done = (d) => d.paid >= d.total
+		const byId = (id) => state.debts.find((d) => d.id === id)
+		const open = () => state.debts.filter((d) => !done(d))
+		const allPaid = () => state.debts.every(done)
+		const join = (a) => (a.length < 3 ? a.join(' and ') : `${a.slice(0, -1).join(', ')}, and ${a.at(-1)}`)
+		const owedList = () => join(open().map((d) => `${owed(d)} ${d.unit}`))
+		const plural = (n, w) => `${n} ${n === 1 ? w : `${w}s`}`
+
+		// Every debt is worth the same share of the day, whatever its size.
+		const share = (d, amt) => amt / d.total / state.debts.length
+		const paidShare = () => state.debts.reduce((s, d) => s + share(d, d.paid), 0)
+		const elapsedAt = (h) => (h - DAWN) / (MIDNIGHT - DAWN)
+		// The gap as a fraction of DAY, from the day elapsed (e), the share paid (p), and the lead at dawn.
+		const rules = {
+			outrun: (e, p, lead) => lead + p - e,
+			slow: (e, p) => 1 - e * (1 - p),
+		}
+		const lead = () => (state.rule === 'outrun' ? state.lead : 1)
+		const gap = () => rules[state.rule](elapsedAt(state.time), paidShare(), lead())
+		const atMidnight = () => state.time >= MIDNIGHT
+		const caught = () => !allPaid() && (gap() <= 1e-9 || (state.rule === 'slow' && atMidnight()))
+		const over = () => !allPaid() && (caught() || atMidnight())
+		const steps = () => Math.max(0, Math.round(gap() * DAY))
+		const catchTime = () => (state.rule === 'outrun' ? Math.min(MIDNIGHT, DAWN + (MIDNIGHT - DAWN) * (lead() + paidShare())) : MIDNIGHT)
+		const drawD = () => (allPaid() ? 1.3 : caught() ? 0 : Math.min(1.3, Math.max(0, gap())))
+		const gain = (rule, h, s) => Math.round((rules[rule](elapsedAt(h), s, 1) - rules[rule](elapsedAt(h), 0, 1)) * DAY)
+		const clock = (h) => {
+			if (h >= 24) return 'midnight'
+			if (h === 12) return 'noon'
+			const m = Math.round(h * 60)
+			const hh = Math.floor(m / 60)
+			return `${hh % 12 || 12}:${String(m % 60).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'}`
+		}
+		const customAmt = (d) => Math.min(Math.max(1, state.custom[d.id] ?? Math.round(d.step * 1.5)), Math.max(1, owed(d)))
+		function shortcut() {
+			let d = byId(state.sc.id)
+			if (done(d) && open().length) d = open()[0]
+			state.sc.id = d.id
+			state.sc.amt = Math.min(Math.max(1, state.sc.amt), Math.max(1, owed(d)))
+			return d
+		}
+
+		const tradeoffs = {
+			outrun: () =>
+				'A payment buys the same lead at 7 am as at 11 pm, and a short day costs you tomorrow\'s head start instead of ending in a catch. It is one more thing to learn: the lead carries over, so after a short day Rex can catch you before midnight.',
+			slow: () =>
+				`Every day is pass or fail and starts clean, which is the easiest rule to explain. But a payment counts for less the earlier you make it, and at midnight Rex jumps whatever gap is left: with 40% paid he is ${Math.round(rules.slow(elapsedAt(23.5), 0.4) * DAY)} steps back at 11:30 pm and has you half an hour later.`,
+		}
+		const lost = `You lose him. He starts ${DAY} steps back at dawn, whatever came before.`
+		const appNotes = {
+			outrun: [
+				['The rule', `Rex takes ${DAY} steps a day, from 6 am to midnight. Your dues are worth ${DAY} steps, split evenly across your debts. Each payment adds its share to your lead.`],
+				['Paid in full', lost],
+				['A short day', 'The lead left at midnight is where he starts tomorrow. Pay 40% and he starts 40 steps back, so tomorrow you have to pay earlier.'],
+				['Caught', 'Your lead reaches zero. On a fresh day that only happens at midnight with nothing paid.'],
+			],
+			slow: [
+				['The rule', 'Rex closes in at a speed set by the share you still owe. A payment only shrinks the ground he has covered so far.'],
+				['Paid in full', lost],
+				['A short day', 'Caught at midnight, whether you paid nothing or 90%. Tomorrow starts clean.'],
+			],
+		}
+		const outNotes = [
+			['Widget', 'Home Screen widgets and the rectangular Lock Screen widget can hold buttons that pay without opening the app. The gap depends only on the clock and what is paid, so the widget can schedule its redraws for the whole day.'],
+			['Siri', 'A spoken phrase can name a debt but not a number, so "Pay Rex pushups" pays that debt\'s usual chunk. The phrase has to include the app\'s name or a spoken alias for it.'],
+			['Shortcuts action', 'Takes any debt and any amount. Put it on the Action Button, an NFC sticker by the pull-up bar, or an automation.'],
+			['Live Activity', 'Runs 8 hours at most, so it suits the last stretch of the evening and not the whole day.'],
+		]
+
+		const skyStops = [
+			[6, [255, 214, 165]],
+			[11, [143, 211, 255]],
+			[16, [150, 205, 250]],
+			[18.5, [255, 160, 110]],
+			[20.5, [84, 68, 158]],
+			[24, [38, 33, 92]],
+		]
+		function sky(h) {
+			const i = Math.max(1, skyStops.findIndex(([t]) => t >= h))
+			const [t0, a] = skyStops[i - 1]
+			const [t1, b] = skyStops[i]
+			const k = Math.min(1, Math.max(0, (h - t0) / (t1 - t0)))
+			return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(' ')})`
+		}
+		const rexSvg = `<svg viewBox="0 0 120 96" role="img" aria-label="Rex, a tyrannosaurus"><g stroke="#1d1a2f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+			<path d="M38 50 L3 36 L32 70 Z" fill="#3fbf6a"/>
+			<path d="M40 66 L35 91 H51 L53 72 Z" fill="#2c9c55"/>
+			<ellipse cx="52" cy="57" rx="25" ry="20" fill="#3fbf6a"/>
+			<path d="M58 68 L62 91 H78 L71 66 Z" fill="#3fbf6a"/>
+			<path d="M52 42 L66 22 C68 12 78 7 90 7 H104 C112 7 117 13 117 21 V30 H88 L78 62 Z" fill="#3fbf6a"/>
+			<path d="M86 35 H113 C116 35 115 44 110 44 H86 Z" fill="#3fbf6a"/>
+			<path d="M92 30 l3 5 l3 -5 M101 30 l3 5 l3 -5 M110 30 l2.5 4 l2.5 -4" fill="#fff" stroke-width="2"/>
+			<circle cx="97" cy="18" r="4.5" fill="#fff" stroke-width="2.5"/>
+			<circle cx="98.5" cy="18.5" r="1.6" fill="#1d1a2f" stroke="none"/>
+			<path d="M90 10 L103 13" fill="none"/>
+			<path d="M72 52 L83 57 L80 63" fill="none"/>
+		</g></svg>`
+		const youSvg = `<svg viewBox="0 0 40 60" role="img" aria-label="You"><g stroke="#1d1a2f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+			<path d="M16 38 L8 56 M25 38 L33 54 L38 52" fill="none"/>
+			<path d="M13 24 L4 30 M27 22 L37 18" fill="none"/>
+			<rect x="12" y="17" width="16" height="23" rx="6" fill="#ff5a3c"/>
+			<circle cx="22" cy="9" r="7.5" fill="#ffd23f"/>
+		</g></svg>`
+		function scene(mini) {
+			const h = state.time
+			const day = h < 19
+			const p = day ? (h - DAWN) / 13 : (h - 19) / 10
+			const night = Math.min(1, Math.max(0, (h - 18.5) / 2))
+			const running = !allPaid() && !over()
+			const d = drawD()
+			const fx = state.fx
+			return `<div class="scene ${mini ? 'mini' : ''}" style="background:${sky(h)}">
+				<div class="stars" style="opacity:${night}"></div>
+				<div class="orb" style="left:${5 + 90 * p}%;--rise:${Math.sin(Math.PI * p).toFixed(3)};background:${day ? '#ffd23f' : '#fff6d6'}"></div>
+				<div class="ground"></div>
+				<div class="rex ${running ? 'run' : ''} ${fx ? 'knock' : ''}" style="--d:${d.toFixed(3)};--d0:${(fx ? fx.d0 : d).toFixed(3)}">${rexSvg}</div>
+				<div class="you ${running ? 'run' : ''}">${youSvg}</div>
+			</div>`
+		}
+
+		const payBtn = (d, amt, cls, label, k, via, aria) =>
+			`<button class="b ${cls}" data-act="pay" data-via="${via}" data-id="${d.id}" data-amt="${amt}" data-k="${k}-${d.id}" ${aria ? `aria-label="${aria}"` : ''} ${over() ? 'disabled' : ''}>${label}</button>`
+		const stepBtn = (label, act, k, aria, off) =>
+			`<button class="b sq" data-act="${act}" data-id="${k}" data-k="${act}-${k}" aria-label="${aria}" ${off || over() ? 'disabled' : ''}>${label}</button>`
+
+		function readout() {
+			const f = state.flash
+			if (allPaid()) return ['good', 'You lost him', `Paid in full. He starts ${DAY} steps back at dawn.`]
+			if (caught()) return ['bad', `Caught at ${clock(catchTime())}`, `You still owed ${owedList()}. A new chase starts at dawn.`]
+			if (atMidnight()) return ['', `${steps()} steps to spare`, `Midnight. You still owed ${owedList()}. He starts ${steps()} steps back tomorrow.`]
+			const rate = Math.round((DAY / (MIDNIGHT - DAWN)) * (state.rule === 'outrun' ? 1 : 1 - paidShare()))
+			let sub = `It's ${clock(state.time)}. He gains about ${rate} steps an hour.`
+			if (state.scene === 'short' && !state.log.length)
+				sub =
+					state.rule === 'outrun'
+						? `He started ${Math.round(state.lead * DAY)} steps back after yesterday. It's ${clock(state.time)} and he gains about ${rate} an hour.`
+						: `Yesterday ended in a catch, so today starts clean. It's ${clock(state.time)}.`
+			if (f) sub = `${f.amt} ${byId(f.id).unit} paid. You gained ${plural(f.gained, 'step')}.`
+			return [steps() <= 25 ? 'bad' : '', `${steps()} steps behind you`, sub]
+		}
+		function appScreen() {
+			const [tone, head, sub] = readout()
+			const rows = state.debts.map((d) => {
+				const isOpen = state.open === d.id && !done(d)
+				const c = customAmt(d)
+				const acts = done(d)
+					? '<span class="paid">Paid</span>'
+					: `<div class="acts">${owed(d) > d.step ? payBtn(d, d.step, 'pb', `+${d.step}`, 'chunk', 'app', `Pay ${d.step} ${d.unit}`) : ''}${payBtn(d, owed(d), 'pb rest', `Pay ${owed(d)}`, 'rest', 'app', `Pay the remaining ${owed(d)} ${d.unit}`)}</div>`
+				const custom = isOpen
+					? `<div class="custom"><span class="lbl">Other amount</span>${stepBtn('&minus;', 'cdec', d.id, 'One less', c <= 1)}<output>${c}</output>${stepBtn('+', 'cinc', d.id, 'One more', c >= owed(d))}${payBtn(d, c, 'pb', `Pay ${c}`, 'custom', 'app', `Pay ${c} ${d.unit}`)}</div>`
+					: ''
+				return `<div class="row"><button class="who" data-act="open" data-id="${d.id}" data-k="open-${d.id}" aria-expanded="${isOpen}" ${done(d) || over() ? 'disabled' : ''}><span class="nm">${d.name}</span><span class="num">${d.paid} of ${d.total} ${d.unit}</span></button>${acts}</div>${custom}`
+			})
+			const undo = state.flash ? '<button class="undo" data-act="undo" data-k="undo">Undo</button>' : ''
+			return `<div class="chase">${scene()}
+				<div class="readout" aria-live="polite"><div class="head ${tone} ${state.fx ? 'pop' : ''}">${head}</div><div class="sub">${sub} ${undo}</div></div>
+				<div class="rows">${rows.join('')}</div>
+			</div>`
+		}
+		function reply() {
+			const f = state.flash
+			if (!f || f.via === 'app') return '<p class="ui-muted empty">Say a phrase or run the action to see the reply.</p>'
+			if (f.via === 'widget') return '<p class="ui-muted empty">A widget button replies by redrawing the widget. Nothing else appears.</p>'
+			const d = byId(f.id)
+			const tail = f.all ? 'Paid in full. You lost him.' : `${f.cleared ? `${d.name} paid off. ` : ''}Rex is ${steps()} steps behind you.`
+			return `<div class="note ui-enter"><span class="appicon">${rexSvg}</span><div><b>${f.via === 'siri' ? 'Siri' : 'Shortcuts'}</b>${f.amt} ${d.unit} paid. ${tail}</div></div>`
+		}
+		function outScreen() {
+			const [tone] = readout()
+			const f = state.flash
+			const off = over() || allPaid() ? 'disabled' : ''
+			let big = `${steps()} steps`
+			let small = f?.via === 'widget' ? `+${plural(f.gained, 'step')}` : 'behind you'
+			if (allPaid()) [big, small] = ['You lost him', 'Paid in full']
+			else if (caught()) [big, small] = ['Caught', `at ${clock(catchTime())}`]
+			else if (atMidnight()) small = 'to spare at midnight'
+			const wbtns = open()
+				.slice(0, 2)
+				.map((d) => payBtn(d, Math.min(d.step, owed(d)), '', `+${Math.min(d.step, owed(d))} ${d.unit}`, 'w', 'widget'))
+				.join('')
+			const says = open()
+				.map((d) => payBtn(d, Math.min(d.step, owed(d)), '', `&ldquo;Pay Rex ${d.name.toLowerCase()}&rdquo;`, 'say', 'siri'))
+				.join('')
+			const d = shortcut()
+			return `<div class="out">
+				<p class="ui-label">Home Screen widget</p>
+				<div class="widget chase">${scene(true)}<div class="wrow"><div><b class="${tone} ${state.fx ? 'pop' : ''}">${big}</b><span>${small}</span></div><div class="wbtns">${wbtns}</div></div></div>
+				<p class="ui-label">Siri</p>
+				<div class="says">${says || '<p class="ui-muted empty">Nothing left to pay today.</p>'}</div>
+				<p class="ui-label">Shortcuts action</p>
+				<div class="sc"><span>Pay</span><span class="tok amt"><button data-act="scdec" data-k="scdec" aria-label="One less" ${off}>&minus;</button>${state.sc.amt}<button data-act="scinc" data-k="scinc" aria-label="One more" ${off}>+</button></span><button class="tok" data-act="scdebt" data-k="scdebt" aria-label="Debt: ${d.name}. Change" ${off}>${d.name}</button><button class="b run" data-act="run" data-k="run" ${off}>Run</button></div>
+				<p class="ui-label">Reply</p>
+				${reply()}
+			</div>`
+		}
+		function notesHtml() {
+			const row = ([k, v]) => `<div><p class="ui-label">${k}</p><p>${v}</p></div>`
+			if (state.where === 'out') return outNotes.map(row).join('')
+			const s = share(byId('push'), 10)
+			const times = [7, 18, 23]
+			const tr = (r, label) =>
+				`<tr style="color:var(${r === state.rule ? '--foreground' : '--muted-foreground'})"><td>${label}</td>${times.map((h) => `<td class="num">${gain(r, h, s)}</td>`).join('')}</tr>`
+			const table = `<div><p class="ui-label">Steps gained by paying 10 pushups</p><table class="ui-table"><thead><tr><th></th>${times.map((h) => `<th class="num">${clock(h).replace(':00', '')}</th>`).join('')}</tr></thead><tbody>${tr('outrun', 'Outrun him')}${tr('slow', 'Slow him')}</tbody></table></div>`
+			const paying = ['Paying', '+10 pays the usual chunk and Pay 40 pays the rest. Tap a debt to open Other amount for anything in between. Undo follows every payment.']
+			return table + [paying, ...appNotes[state.rule]].map(row).join('')
+		}
+
+		function render() {
+			const k = document.activeElement?.dataset?.k
+			const phone = el('phone')
+			el('tradeoff').textContent = tradeoffs[state.rule]()
+			el('timeLabel').textContent = clock(state.time)
+			el('notes').innerHTML = notesHtml()
+			phone.className = state.where === 'app' ? 'phone' : 'phone bare'
+			phone.innerHTML = state.where === 'app' ? appScreen() : outScreen()
+			state.fx = null
+			if (k) (phone.querySelector(`[data-k="${k}"]:not(:disabled)`) ?? phone.querySelector('button:not(:disabled)'))?.focus()
+		}
+		function pay(id, amount, via) {
+			const d = byId(id)
+			if (!d || done(d) || over() || !(amount > 0)) return
+			const amt = Math.min(amount, owed(d))
+			const before = gap()
+			state.fx = { d0: drawD() }
+			d.paid += amt
+			state.log.push({ id, amt })
+			state.flash = { id, amt, via, gained: Math.round((gap() - before) * DAY), cleared: done(d), all: allPaid() }
+			if (done(d) && state.open === id) state.open = null
+			render()
+		}
+		function undo() {
+			const last = state.log.pop()
+			if (!last) return
+			byId(last.id).paid -= last.amt
+			state.flash = null
+			render()
+		}
+		function applyScene(name) {
+			const s = scenes[name]
+			Object.assign(state, { scene: name, time: s.time, lead: s.lead, debts: fresh(s.paid), open: 'push', custom: {}, sc: { id: 'push', amt: 15 }, log: [], flash: null, fx: null })
+			el('time').value = s.time
+			render()
+		}
+		el('phone').addEventListener('click', (e) => {
+			const t = e.target.closest('[data-act]')
+			if (!t || t.disabled) return
+			const { act, id } = t.dataset
+			if (act === 'pay') return pay(id, Number(t.dataset.amt), t.dataset.via)
+			if (act === 'run') return pay(state.sc.id, state.sc.amt, 'shortcut')
+			if (act === 'undo') return undo()
+			if (act === 'open') state.open = state.open === id ? null : id
+			if (act === 'cdec' || act === 'cinc') state.custom[id] = customAmt(byId(id)) + (act === 'cinc' ? 1 : -1)
+			if (act === 'scdec' || act === 'scinc') state.sc.amt += act === 'scinc' ? 1 : -1
+			if (act === 'scdebt') {
+				const o = open()
+				state.sc.id = o[(o.findIndex((x) => x.id === state.sc.id) + 1) % o.length].id
+			}
+			render()
+		})
+		el('rule').addEventListener('change', (e) => {
+			state.rule = e.detail.value
+			state.flash = null
+			render()
+		})
+		el('where').addEventListener('change', (e) => {
+			state.where = e.detail.value
+			render()
+		})
+		el('scene').addEventListener('change', (e) => applyScene(e.detail.value))
+		el('time').addEventListener('input', (e) => {
+			state.time = Number(e.target.value)
+			state.flash = null
+			render()
+		})
+		el('reset').addEventListener('click', () => applyScene(state.scene))
+		applyScene('evening')
+	}
+</script>

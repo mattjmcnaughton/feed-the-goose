@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Built by docs/prototypes/build.py. Edit the .src.html file in src/, not this file. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* A small stand-in for Amp's view kit (colour tokens and ui-* classes), so the prototype opens in any browser. */
+:root{--background:#fff;--foreground:#18181b;--muted-foreground:#71717a;--border:#e4e4e7;--card:#fafafa;--muted:#f0f0f1;--link:#2563eb;--chart-1:#2563eb;--chart-context:#c8c8cc;--radius:8px;--font-sans:system-ui,sans-serif;--font-mono:ui-monospace,monospace}
+html.dark{--background:#111113;--foreground:#ededef;--muted-foreground:#9a9aa3;--border:#2c2c31;--card:#18181b;--muted:#1f1f23;--chart-context:#4a4a52}
+body{margin:0 auto;padding:16px;max-width:760px;box-sizing:border-box;background:var(--background);color:var(--foreground);font:13px/20px var(--font-sans)}
+p{margin:0}
+[hidden]{display:none!important}
+.ui-header{margin-bottom:16px}.ui-title{font-weight:500}.ui-sub,.ui-label{font-size:12px;color:var(--muted-foreground)}
+.ui-muted{color:var(--muted-foreground)}.ui-caption{font-size:11px;color:var(--muted-foreground)}
+.ui-num{font-variant-numeric:tabular-nums}
+.ui-stack{display:grid;gap:var(--gap,12px)}.ui-row{display:flex;align-items:center;gap:8px}
+.ui-seg{display:inline-flex;background:var(--muted);border-radius:8px;padding:2px;width:fit-content}
+.ui-seg button{all:unset;padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted-foreground);white-space:nowrap}
+.ui-seg button[aria-selected=true]{background:var(--background);color:var(--foreground);box-shadow:0 0 0 1px var(--border)}
+.ui-seg button:focus-visible,.ui-btn:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.ui-btn{all:unset;padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--muted)}
+.ui-chip{font-size:11px;padding:0 6px;border-radius:9px;box-shadow:0 0 0 1px var(--border);color:var(--muted-foreground)}
+.ui-table{border-collapse:collapse;width:100%;font-size:12px}.ui-table th{font-weight:400;color:var(--muted-foreground);text-align:left}
+.ui-table th,.ui-table td{padding:4px 8px 4px 0;border-bottom:1px solid var(--border)}.ui-table .num{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+<script>
+window.ui={icon:()=>''}
+document.addEventListener('click',e=>{const b=e.target.closest('.ui-seg button');if(!b)return
+ const seg=b.parentElement;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b))
+ seg.dispatchEvent(new CustomEvent('change',{detail:{value:b.dataset.value}}))})
+if(location.hash==='#dark')document.documentElement.classList.add('dark')
+</script>
+<body>

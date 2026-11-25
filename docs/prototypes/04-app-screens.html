@@ -1,0 +1,795 @@
+<!doctype html>
+<!-- Built by docs/prototypes/build.py. Edit the .src.html file in src/, not this file. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feed the Goose prototype: app screens</title>
+<style>
+/* A small stand-in for Amp's view kit (colour tokens and ui-* classes), so the prototype opens in any browser. */
+:root{--background:#fff;--foreground:#18181b;--muted-foreground:#71717a;--border:#e4e4e7;--card:#fafafa;--muted:#f0f0f1;--link:#2563eb;--chart-1:#2563eb;--chart-context:#c8c8cc;--radius:8px;--font-sans:system-ui,sans-serif;--font-mono:ui-monospace,monospace}
+html.dark{--background:#111113;--foreground:#ededef;--muted-foreground:#9a9aa3;--border:#2c2c31;--card:#18181b;--muted:#1f1f23;--chart-context:#4a4a52}
+body{margin:0 auto;padding:16px;max-width:760px;box-sizing:border-box;background:var(--background);color:var(--foreground);font:13px/20px var(--font-sans)}
+p{margin:0}
+[hidden]{display:none!important}
+.ui-header{margin-bottom:16px}.ui-title{font-weight:500}.ui-sub,.ui-label{font-size:12px;color:var(--muted-foreground)}
+.ui-muted{color:var(--muted-foreground)}.ui-caption{font-size:11px;color:var(--muted-foreground)}
+.ui-num{font-variant-numeric:tabular-nums}
+.ui-stack{display:grid;gap:var(--gap,12px)}.ui-row{display:flex;align-items:center;gap:8px}
+.ui-seg{display:inline-flex;background:var(--muted);border-radius:8px;padding:2px;width:fit-content}
+.ui-seg button{all:unset;padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted-foreground);white-space:nowrap}
+.ui-seg button[aria-selected=true]{background:var(--background);color:var(--foreground);box-shadow:0 0 0 1px var(--border)}
+.ui-seg button:focus-visible,.ui-btn:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.ui-btn{all:unset;padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--muted)}
+.ui-chip{font-size:11px;padding:0 6px;border-radius:9px;box-shadow:0 0 0 1px var(--border);color:var(--muted-foreground)}
+.ui-table{border-collapse:collapse;width:100%;font-size:12px}.ui-table th{font-weight:400;color:var(--muted-foreground);text-align:left}
+.ui-table th,.ui-table td{padding:4px 8px 4px 0;border-bottom:1px solid var(--border)}.ui-table .num{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+<script>
+window.ui={icon:()=>''}
+document.addEventListener('click',e=>{const b=e.target.closest('.ui-seg button');if(!b)return
+ const seg=b.parentElement;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b))
+ seg.dispatchEvent(new CustomEvent('change',{detail:{value:b.dataset.value}}))})
+if(location.hash==='#dark')document.documentElement.classList.add('dark')
+</script>
+<body>
+<div class="ui-header">
+	<p class="ui-title">Feed the Goose: each log tosses the goose a crust, and you gain ground while it eats</p>
+	<p class="ui-sub">
+		The chase with a goose as the pursuer and bread as what you log. Finish every habit to see the
+		fed moment, and drag the time to midnight to see a short day. Step counts use the Outrun
+		rule. The name, URL, history, and goose art are placeholders.
+	</p>
+</div>
+<div class="ui-stack" style="--gap: 8px; margin-bottom: 12px">
+	<div class="ui-row" style="flex-wrap: wrap">
+		<div class="ui-seg" id="screen" aria-label="Screen">
+			<button data-value="today" aria-selected="true">Today</button>
+			<button data-value="out">Widget and Siri</button>
+			<button data-value="profile">Public profile</button>
+		</div>
+		<div class="ui-seg" id="cond" aria-label="Start from">
+			<button data-value="none">Unfed</button>
+			<button data-value="part" aria-selected="true">Part fed</button>
+			<button data-value="full">Fed</button>
+		</div>
+	</div>
+	<div class="ui-row" style="justify-content: space-between; flex-wrap: wrap">
+		<label class="ui-row" style="flex: 1; min-width: 240px; max-width: 340px">
+			<span class="ui-label" style="white-space: nowrap">Time of day</span>
+			<input class="ui-range" id="time" type="range" min="6" max="24" step="0.5" value="18" style="flex: 1; min-width: 0" />
+			<span class="ui-label ui-num" id="timeLabel" style="width: 58px; text-align: right"></span>
+		</label>
+		<button class="ui-btn sm" id="reset"><i data-icon="play" class="sm"></i>Reset</button>
+	</div>
+</div>
+<div class="ptm-layout">
+	<div class="phone" id="phone"></div>
+	<div class="ui-stack" id="notes" style="--gap: 12px; align-content: start"></div>
+</div>
+<p class="ui-caption" style="margin-top: 12px; text-wrap: pretty">
+	Also considered, not drawn: a Canada goose (I expect its black neck to get lost against the night
+	sky) and coins instead of bread (bread gives the goose a reason to stop).
+</p>
+<style>
+	@font-face {
+		font-family: 'PTM Shrik';
+		src: url(data:font/woff2;base64,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) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	#notes p {
+		margin: 0;
+		text-wrap: pretty;
+		max-width: 46ch;
+	}
+	.phone {
+		--f-head: 'PTM Shrik', 'Cooper Black', Georgia, serif;
+		--f-round: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		height: 468px;
+		border-radius: 30px;
+		overflow: hidden;
+		position: relative;
+		box-shadow: 0 0 0 1px var(--border);
+		-webkit-user-select: none;
+		user-select: none;
+	}
+	.phone.bare {
+		height: auto;
+		border-radius: 0;
+		overflow: visible;
+		box-shadow: none;
+	}
+	.phone button {
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.phone button:focus-visible {
+		outline: 3px solid #2f6bff;
+		outline-offset: 2px;
+	}
+	.phone button:disabled {
+		cursor: default;
+		opacity: 0.45;
+	}
+	.chase {
+		--ink: #1d1a2f;
+		--paper: #fffaf0;
+		--grass: #a9d68c;
+		--bread: #e8ae4c;
+		height: 100%;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--f-round);
+		font-size: 14px;
+		line-height: 1.25;
+		display: flex;
+		flex-direction: column;
+	}
+	.chase .scene {
+		--rw: 116px;
+		--yw: 36px;
+		--gh: 44px;
+		--ow: 32px;
+		--amp: 92px;
+		--youx: 68%;
+		height: 176px;
+		flex: none;
+		position: relative;
+		overflow: hidden;
+		border-bottom: 3px solid var(--ink);
+	}
+	.chase .scene.short {
+		height: 150px;
+		--amp: 68px;
+	}
+	.chase .scene.mini {
+		--rw: 60px;
+		--yw: 19px;
+		--gh: 22px;
+		--ow: 18px;
+		--amp: 44px;
+		height: 92px;
+		border-bottom-width: 2.5px;
+	}
+	.chase .stars {
+		position: absolute;
+		inset: 0 0 var(--gh);
+		background:
+			radial-gradient(circle at 12% 22%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 34% 48%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 52% 16%, #fff 0 2px, transparent 2.5px),
+			radial-gradient(circle at 71% 40%, #fff 0 1.5px, transparent 2px),
+			radial-gradient(circle at 90% 20%, #fff 0 1.5px, transparent 2px);
+	}
+	.chase .orb {
+		position: absolute;
+		box-sizing: border-box;
+		width: var(--ow);
+		height: var(--ow);
+		margin-left: calc(var(--ow) / -2);
+		border-radius: 50%;
+		border: 3px solid var(--ink);
+		bottom: calc(var(--gh) * 0.68 + var(--rise) * var(--amp));
+	}
+	.chase .ground {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: var(--gh);
+		background:
+			repeating-linear-gradient(90deg, var(--ink) 0 10px, transparent 10px 46px) 0
+				calc(var(--gh) * 0.32) / 100% 3px no-repeat,
+			repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 70px) 24px
+				calc(var(--gh) * 0.64) / 100% 3px no-repeat,
+			var(--grass);
+		border-top: 3px solid var(--ink);
+	}
+	.chase .prop {
+		position: absolute;
+		bottom: calc(var(--gh) - 1px);
+		left: 46%;
+		width: calc(var(--rw) * 0.22);
+	}
+	.chase .foe {
+		position: absolute;
+		bottom: calc(var(--gh) * 0.68);
+		width: var(--rw);
+		left: calc((1 - var(--d)) * (var(--youx) - var(--rw) * 0.86) - var(--off));
+	}
+	.chase .loaf {
+		position: absolute;
+		bottom: calc(var(--gh) * 0.68);
+		left: calc(var(--rw) * 1.02);
+		width: calc(var(--rw) * 0.28);
+	}
+	.chase .you {
+		position: absolute;
+		bottom: calc(var(--gh) * 0.7);
+		left: var(--youx);
+		width: var(--yw);
+		z-index: 1;
+	}
+	.chase svg {
+		display: block;
+		width: 100%;
+		overflow: visible;
+	}
+	.chase .shot {
+		position: absolute;
+		box-sizing: border-box;
+		bottom: calc(var(--gh) * 0.68 + 24px);
+		left: var(--youx);
+		width: 16px;
+		height: 11px;
+		border-radius: 5px;
+		border: 2.5px solid var(--ink);
+		background: var(--bread);
+		opacity: 0;
+		z-index: 2;
+	}
+	.chase .readout {
+		padding: 12px 16px 8px;
+		border-bottom: 2px dashed rgb(29 26 47 / 0.2);
+	}
+	.chase .head,
+	.widget b {
+		font-family: var(--f-head);
+		font-weight: 400;
+		font-size: 24px;
+		line-height: 1.1;
+		transform-origin: 0 50%;
+	}
+	.chase .bad {
+		color: #d63a1e;
+	}
+	.chase .good {
+		color: #17804a;
+	}
+	.chase .sub {
+		margin-top: 4px;
+		min-height: 35px;
+	}
+	.chase .undo {
+		border: 0;
+		background: none;
+		padding: 4px 0;
+		margin: -4px 0;
+		font-weight: 700;
+		text-decoration: underline;
+	}
+	.chase .rows {
+		padding: 0 16px;
+	}
+	.chase .row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 9px 0;
+	}
+	.chase .row + .row {
+		border-top: 2px dashed rgb(29 26 47 / 0.14);
+	}
+	.chase .nm {
+		display: block;
+		font-weight: 700;
+		font-size: 16px;
+	}
+	.chase .num {
+		font-variant-numeric: tabular-nums;
+	}
+	.chase .acts {
+		display: flex;
+		gap: 6px;
+		flex: none;
+	}
+	.chase .pb {
+		height: 40px;
+		min-width: 52px;
+		padding: 0 12px;
+		border-radius: 12px;
+		border: 2.5px solid var(--ink);
+		background: var(--paper);
+		box-shadow: 0 3px 0 var(--ink);
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.chase .pb.rest {
+		background: var(--bread);
+	}
+	.chase .pb:active:not(:disabled) {
+		transform: translateY(3px);
+		box-shadow: none;
+	}
+	.chase .paid {
+		font-weight: 700;
+		color: #17804a;
+	}
+	.chase .grid {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 5px;
+	}
+	.chase .grid i,
+	.chase .legend i {
+		box-sizing: border-box;
+		height: 20px;
+		border-radius: 10px;
+		border: 2px solid var(--ink);
+		background: var(--bread);
+	}
+	.chase i.p {
+		background: linear-gradient(90deg, var(--bread) 50%, transparent 0);
+	}
+	.chase i.c {
+		background: #ff5a3c;
+	}
+	.chase i.o {
+		background: transparent;
+		border-style: dashed;
+	}
+	.chase .legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 12px;
+		margin-top: 10px;
+		font-size: 13px;
+	}
+	.chase .legend span {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.chase .legend i {
+		display: inline-block;
+		width: 20px;
+		height: 13px;
+	}
+
+	/* ---------- outside the app ---------- */
+	.out {
+		display: grid;
+		gap: 6px;
+		font-family: var(--f-round);
+	}
+	.out > .ui-label {
+		margin: 8px 0 0;
+	}
+	.out > .ui-label:first-child {
+		margin-top: 0;
+	}
+	.widget.chase {
+		height: auto;
+		display: block;
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+	}
+	.widget .wrow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 10px 12px 12px;
+	}
+	.widget .wrow > div:first-child {
+		flex: none;
+	}
+	.widget b {
+		display: block;
+		font-size: 20px;
+		white-space: nowrap;
+	}
+	.widget .wbtns {
+		display: flex;
+		gap: 6px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	.widget .wbtns button {
+		height: 38px;
+		padding: 0 9px;
+		border-radius: 19px;
+		border: 2.5px solid var(--ink);
+		background: var(--bread);
+		font-weight: 700;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+	.says {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.says button {
+		height: 38px;
+		padding: 0 13px;
+		border-radius: 19px;
+		border: 0;
+		background: var(--muted);
+		color: var(--foreground);
+		font-size: 13px;
+	}
+	.note {
+		display: flex;
+		gap: 10px;
+		align-items: flex-start;
+		border-radius: 18px;
+		padding: 10px 12px;
+		background: #f2f2f7;
+		color: #1c1c1e;
+		font-size: 14px;
+		line-height: 1.3;
+	}
+	.note b {
+		display: block;
+		font-weight: 600;
+	}
+	.appicon {
+		width: 30px;
+		height: 30px;
+		flex: none;
+		border-radius: 7px;
+		background: #a9d68c;
+		overflow: hidden;
+	}
+	.appicon svg {
+		display: block;
+		width: 30px;
+		height: 30px;
+	}
+	.out .empty {
+		margin: 0;
+		padding: 6px 0;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.chase .foe.knock {
+			animation: ptm-knock 0.5s cubic-bezier(0.3, 1.5, 0.6, 1) 0.26s backwards;
+		}
+		.chase .foe.run svg,
+		.chase .you.run svg {
+			animation: ptm-bob 0.3s steps(2) infinite alternate;
+		}
+		.chase .you.run svg {
+			animation-delay: 0.15s;
+		}
+		.chase .shot.go {
+			animation: ptm-shot 0.3s linear both;
+		}
+		.chase .head.pop,
+		.widget b.pop {
+			animation: ptm-pop 0.2s ease-out;
+		}
+	}
+	@keyframes ptm-knock {
+		from {
+			left: calc((1 - var(--d0)) * (var(--youx) - var(--rw) * 0.86) - var(--off0));
+		}
+	}
+	@keyframes ptm-bob {
+		to {
+			transform: translateY(-4px);
+		}
+	}
+	@keyframes ptm-shot {
+		0% {
+			left: var(--youx);
+			transform: translateY(0);
+			opacity: 1;
+		}
+		50% {
+			transform: translateY(-30px);
+			opacity: 1;
+		}
+		99% {
+			opacity: 1;
+		}
+		100% {
+			left: calc((1 - var(--d0)) * (var(--youx) - var(--rw) * 0.86) - var(--off0) + var(--rw) * 0.9);
+			transform: translateY(0);
+			opacity: 0;
+		}
+	}
+	@keyframes ptm-pop {
+		from {
+			transform: scale(0.94);
+		}
+	}
+</style>
+<script>
+	{
+		const el = (id) => document.getElementById(id)
+		const DAWN = 6
+		const MIDNIGHT = 24
+		// Steps the goose takes between dawn and midnight, and what a full day of habits is worth.
+		const DAY = 100
+		const INK = 'stroke="#1d1a2f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"'
+		const LEGS = 'M44 74 L38 91 H50 M58 74 L66 89 L76 87'
+		const gooseSvg = (fed, box = '0 0 120 96') => `<svg viewBox="${box}" role="img" aria-label="The goose, ${fed ? 'eating' : 'chasing you'}">
+			<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+				<path d="${LEGS}" stroke="#1d1a2f" stroke-width="7"/>
+				<path d="${LEGS}" stroke="#ff8a1f" stroke-width="3"/>
+			</g>
+			<g ${INK}>
+				<path d="M6 40 L26 48 C36 42 50 42 58 46 C70 44 82 36 89 25 C88 9 113 6 114 22 C115 31 108 38 100 38 C93 49 84 58 72 62 C74 72 60 78 44 78 C26 78 12 62 6 40 Z" fill="#fffdf7"/>
+				<path d="M30 54 C38 46 56 46 62 58 C52 66 38 64 30 54 Z" fill="#e6e1f0"/>
+				${
+					fed
+						? '<path d="M111 15 L122 25 L108 33 Z" fill="#ff8a1f"/><path d="M98 21 q4 -4 8 0" fill="none" stroke-width="2.5"/>'
+						: '<path d="M111 14 L123 21 L112 25 Z" fill="#ff8a1f"/><path d="M111 28 L120 32 L107 35 Z" fill="#ff8a1f"/><circle cx="103" cy="20" r="2.8" fill="#1d1a2f" stroke="none"/><path d="M97 12 L108 16" fill="none" stroke-width="2.5"/>'
+				}
+			</g></svg>`
+		const youSvg = `<svg viewBox="0 0 40 60" role="img" aria-label="You"><g ${INK}>
+			<path d="M16 38 L8 56 M25 38 L33 54 L38 52" fill="none"/>
+			<path d="M13 24 L4 30 M27 22 L37 18" fill="none"/>
+			<rect x="12" y="17" width="16" height="23" rx="6" fill="#ff5a3c"/>
+			<circle cx="22" cy="9" r="7.5" fill="#ffd23f"/>
+		</g></svg>`
+		const reedsSvg = `<svg viewBox="0 0 30 44" aria-hidden="true"><g ${INK}>
+			<path d="M10 44 V20 M20 44 V14" fill="none"/>
+			<rect x="7" y="8" width="6" height="14" rx="3" fill="#8a5a2b"/>
+			<rect x="17" y="2" width="6" height="14" rx="3" fill="#8a5a2b"/>
+		</g></svg>`
+		const loafSvg = `<svg viewBox="0 0 34 22" aria-hidden="true"><g ${INK}>
+			<path d="M3 20 V11 C3 3 31 3 31 11 V20 Z" fill="#e8ae4c"/>
+			<path d="M11 8 L13 13 M17 7 L19 12 M23 8 L25 13" fill="none" stroke-width="2"/>
+		</g></svg>`
+
+		const starts = { none: [0, 0, 0], part: [20, 30, 0], full: [50, 30, 20] }
+		const fresh = (paid) => [
+			{ id: 'push', name: 'Pushups', unit: 'pushups', total: 50, step: 10, paid: paid[0] },
+			{ id: 'work', name: 'Workout', unit: 'min', total: 30, step: 10, paid: paid[1] },
+			{ id: 'read', name: 'Reading', unit: 'pages', total: 20, step: 5, paid: paid[2] },
+		]
+		// Sample history: the 34 days before today. f = paid in full, p = short day, c = caught.
+		const past = ('ffffffpfffffffcfffffp' + 'f'.repeat(13)).split('')
+		const state = { screen: 'today', cond: 'part', fx: null }
+
+		const owed = (d) => d.total - d.paid
+		const done = (d) => d.paid >= d.total
+		const byId = (id) => state.debts.find((d) => d.id === id)
+		const open = () => state.debts.filter((d) => !done(d))
+		const allPaid = () => state.debts.every(done)
+		const join = (a) => (a.length < 3 ? a.join(' and ') : `${a.slice(0, -1).join(', ')}, and ${a.at(-1)}`)
+		const owedList = () => join(open().map((d) => `${owed(d)} ${d.unit}`))
+		const plural = (n, w) => `${n} ${n === 1 ? w : `${w}s`}`
+		// Outrun rule: the goose takes DAY steps on the clock, and each habit is an equal share of DAY.
+		const share = (d, amt) => amt / d.total / state.debts.length
+		const paidShare = () => state.debts.reduce((s, d) => s + share(d, d.paid), 0)
+		const elapsed = () => (state.time - DAWN) / (MIDNIGHT - DAWN)
+		const gap = () => 1 + paidShare() - elapsed()
+		const atMidnight = () => state.time >= MIDNIGHT
+		const caught = () => !allPaid() && gap() <= 1e-9
+		const over = () => !allPaid() && (caught() || atMidnight())
+		const steps = () => Math.max(0, Math.round(gap() * DAY))
+		const catchTime = () => Math.min(MIDNIGHT, DAWN + (MIDNIGHT - DAWN) * (1 + paidShare()))
+		const drawD = () => (allPaid() ? 1 : Math.min(1.3, Math.max(0, gap())))
+		const chunk = (d) => Math.min(d.step, owed(d))
+		const clock = (h) => {
+			if (h >= 24) return 'midnight'
+			if (h === 12) return 'noon'
+			const m = Math.round(h * 60)
+			const hh = Math.floor(m / 60)
+			return `${hh % 12 || 12}:${String(m % 60).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'}`
+		}
+
+		const skyStops = [
+			[6, [255, 214, 165]],
+			[11, [143, 211, 255]],
+			[16, [150, 205, 250]],
+			[18.5, [255, 160, 110]],
+			[20.5, [84, 68, 158]],
+			[24, [38, 33, 92]],
+		]
+		function sky(h) {
+			const i = Math.max(1, skyStops.findIndex(([t]) => t >= h))
+			const [t0, a] = skyStops[i - 1]
+			const [t1, b] = skyStops[i]
+			const k = Math.min(1, Math.max(0, (h - t0) / (t1 - t0)))
+			return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(' ')})`
+		}
+		function scene(kind = '') {
+			const h = state.time
+			const day = h < 19
+			const p = day ? (h - DAWN) / 13 : (h - 19) / 10
+			const night = Math.min(1, Math.max(0, (h - 18.5) / 2))
+			const paid = allPaid()
+			const running = !paid && !over()
+			const fx = state.fx
+			const place = (d, n) => `--d${n}:${Math.min(d, 1).toFixed(3)};--off${n}:${Math.round(Math.max(0, d - 1) * 400)}px`
+			const at = place(drawD(), '')
+			const from = place(fx ? fx.d0 : drawD(), '0')
+			return `<div class="scene ${kind}" style="background:${sky(h)}">
+				<div class="stars" style="opacity:${night}"></div>
+				<div class="orb" style="left:${5 + 90 * p}%;--rise:${Math.sin(Math.PI * p).toFixed(3)};background:${day ? '#ffd23f' : '#fff6d6'}"></div>
+				<div class="ground"></div>
+				<div class="prop">${reedsSvg}</div>
+				<div class="foe ${running ? 'run' : ''} ${fx ? 'knock' : ''}" style="${at};${from}">${gooseSvg(paid)}</div>
+				${paid ? `<div class="loaf">${loafSvg}</div>` : ''}
+				${fx && !paid ? `<div class="shot go" style="${from}"></div>` : ''}
+				<div class="you ${running ? 'run' : ''}">${youSvg}</div>
+			</div>`
+		}
+		function readout() {
+			const f = state.flash
+			if (allPaid()) return ['good', 'The goose is fed', `It has the whole loaf, and starts ${DAY} steps back at dawn.`]
+			if (caught()) return ['bad', 'The goose got you', `Caught at ${clock(catchTime())}. You still owed ${owedList()}. A new chase starts at dawn.`]
+			if (atMidnight()) return ['', `${steps()} steps to spare`, `Midnight. You still owed ${owedList()}. The goose starts ${steps()} steps back tomorrow.`]
+			const rate = Math.round(DAY / (MIDNIGHT - DAWN))
+			const sub = f
+				? `${f.amt} ${f.unit} logged. The goose stops for the crust and you gain ${plural(f.gained, 'step')}.`
+				: `It's ${clock(state.time)}. The goose gains about ${rate} steps an hour.`
+			return [steps() <= 25 ? 'bad' : '', `${steps()} steps behind you`, sub]
+		}
+		const payBtn = (d, amt, cls, label, k, via, aria) =>
+			`<button class="${cls}" data-act="pay" data-via="${via}" data-id="${d.id}" data-amt="${amt}" data-k="${k}-${d.id}" ${aria ? `aria-label="${aria}"` : ''} ${over() ? 'disabled' : ''}>${label}</button>`
+
+		function todayScreen() {
+			const [tone, head, sub] = readout()
+			const rows = state.debts.map(
+				(d) =>
+					`<div class="row"><div><span class="nm">${d.name}</span><span class="num">${d.paid} of ${d.total} ${d.unit}</span></div>${
+						done(d)
+							? '<span class="paid">Done</span>'
+							: `<div class="acts">${owed(d) > d.step ? payBtn(d, d.step, 'pb', `+${d.step}`, 'chunk', 'app', `Log ${d.step} ${d.unit}`) : ''}${payBtn(d, owed(d), 'pb rest', `Finish ${owed(d)}`, 'rest', 'app', `Log the remaining ${owed(d)} ${d.unit}`)}</div>`
+					}</div>`,
+			)
+			const undo = state.flash && state.log.length ? '<button class="undo" data-act="undo" data-k="undo">Undo</button>' : ''
+			return `<div class="chase">${scene()}
+				<div class="readout" aria-live="polite"><div class="head ${tone} ${state.fx ? 'pop' : ''}">${head}</div><div class="sub">${sub} ${undo}</div></div>
+				<div class="rows">${rows.join('')}</div>
+			</div>`
+		}
+		function reply() {
+			const f = state.flash
+			if (!f || f.via === 'app') return '<p class="ui-muted empty">Say a phrase to see the reply.</p>'
+			if (f.via === 'widget') return '<p class="ui-muted empty">A widget button replies by redrawing the widget. Nothing else appears.</p>'
+			const tail = allPaid() ? 'The goose is fed. It has the loaf.' : `The goose is ${steps()} steps behind you.`
+			return `<div class="note ui-enter"><span class="appicon">${gooseSvg(false, '88 2 36 36')}</span><div><b>Siri</b>${f.amt} ${f.unit} logged. ${tail}</div></div>`
+		}
+		function outScreen() {
+			const [tone] = readout()
+			const f = state.flash
+			let big = `${steps()} steps`
+			let small = f?.via === 'widget' ? `+${plural(f.gained, 'step')}` : 'behind you'
+			if (allPaid()) [big, small] = ['Fed', 'The goose has the loaf']
+			else if (caught()) [big, small] = ['Got you', `at ${clock(catchTime())}`]
+			else if (atMidnight()) small = 'to spare at midnight'
+			const wbtns = open()
+				.slice(0, 2)
+				.map((d) => payBtn(d, chunk(d), '', `+${chunk(d)} ${d.unit}`, 'w', 'widget'))
+				.join('')
+			const says = open()
+				.map((d) => payBtn(d, chunk(d), '', `&ldquo;Feed the Goose ${d.name.toLowerCase()}&rdquo;`, 'say', 'siri'))
+				.join('')
+			return `<div class="out">
+				<p class="ui-label">Home Screen widget</p>
+				<div class="widget chase">${scene('mini')}<div class="wrow"><div><b class="${tone} ${state.fx ? 'pop' : ''}">${big}</b><span>${small}</span></div><div class="wbtns">${wbtns}</div></div></div>
+				<p class="ui-label">Siri</p>
+				<div class="says">${says || '<p class="ui-muted empty">Nothing left to log today.</p>'}</div>
+				<p class="ui-label">Reply</p>
+				${reply()}
+			</div>`
+		}
+		function profileScreen() {
+			const all = allPaid()
+			const ended = over()
+			const h = [...past, all ? 'f' : caught() ? 'c' : ended ? 'p' : 'o']
+			let pastRun = 0
+			for (let i = past.length - 1; i >= 0 && past[i] === 'f'; i--) pastRun++
+			const n = (c) => h.filter((x) => x === c).length
+			const head = ended ? `A ${pastRun}-day run ended today` : `Fed the goose ${pastRun + (all ? 1 : 0)} days running`
+			const sub = all
+				? 'Matt fed the goose again today.'
+				: caught()
+					? 'The goose got Matt. A new chase starts at dawn.'
+					: ended
+						? `Matt finished short, ${steps()} steps ahead of the goose.`
+						: `Right now the goose is ${steps()} steps behind Matt.`
+			return `<div class="chase">${scene('short')}
+				<div class="readout"><div class="head ${all ? 'good' : ended ? 'bad' : ''}">${head}</div><div class="sub" style="min-height:0">${sub}</div></div>
+				<div class="rows" style="padding-top:12px">
+					<div class="row" style="padding:0 0 10px"><span class="nm">Matt</span><span>feedthegoose.app/matt</span></div>
+					<div class="grid">${h.map((x) => `<i class="${x}"></i>`).join('')}</div>
+					<div class="legend"><span><i class="f"></i>${n('f')} fed</span><span><i class="p"></i>${n('p')} short</span><span><i class="c"></i>${n('c')} caught</span></div>
+				</div>
+			</div>`
+		}
+		const screens = { today: todayScreen, out: outScreen, profile: profileScreen }
+		function notesHtml() {
+			const gained = Math.round(share(byId('push'), 10) * DAY)
+			const notes = {
+				today: [
+					['Logging', `Each log tosses the goose a crust. It stops to eat, and you gain that habit's share of the day: ${gained} steps for 10 pushups.`],
+					['Fed', `Every habit is done. The goose gets the whole loaf and starts ${DAY} steps back at dawn.`],
+					['A short day', 'The lead left at midnight is where the goose starts tomorrow. This is the Outrun rule from the payments mock.'],
+					['Caught', 'Your lead reaches zero and the day locks. Start from Unfed and drag to midnight to see it.'],
+					['Left out of this mock', 'Other amount, from the payments mock. It would work the same way here.'],
+					['What it costs', 'The goose has to stay funny on day 200, and bread only makes sense for a goose: each later pursuer needs its own food.'],
+				],
+				out: [
+					['Widget', 'The buttons log without opening the app. The gap depends only on the clock and what is logged, so the widget can schedule its redraws for the whole day.'],
+					['Siri', 'The app name is the command. "Feed the Goose pushups" logs that habit\'s usual chunk, because a spoken phrase can name a habit but not a number. Not tried on a device.'],
+					['Shortcuts action', 'Takes any habit and any amount, as in the payments mock.'],
+				],
+				profile: [
+					['What visitors see', 'The streak, the last 35 days, and where the goose is right now.'],
+					['What stays private', 'Habit names and amounts. That is my assumption, not something you asked for.'],
+					['Sample data', 'The name, the URL, and the history are examples.'],
+				],
+			}
+			return notes[state.screen].map(([k, v]) => `<div><p class="ui-label">${k}</p><p>${v}</p></div>`).join('')
+		}
+		function render() {
+			const k = document.activeElement?.dataset?.k
+			const phone = el('phone')
+			el('timeLabel').textContent = clock(state.time)
+			el('notes').innerHTML = notesHtml()
+			phone.className = state.screen === 'out' ? 'phone bare' : 'phone'
+			phone.innerHTML = screens[state.screen]()
+			state.fx = null
+			if (k) (phone.querySelector(`[data-k="${k}"]:not(:disabled)`) ?? phone.querySelector('button:not(:disabled)'))?.focus()
+		}
+		function pay(id, amount, via) {
+			const d = byId(id)
+			if (!d || done(d) || over() || !(amount > 0)) return
+			const amt = Math.min(amount, owed(d))
+			const before = gap()
+			state.fx = { d0: drawD() }
+			d.paid += amt
+			state.log.push({ id, amt })
+			state.flash = { amt, unit: d.unit, via, gained: Math.round((gap() - before) * DAY) }
+			render()
+		}
+		function undo() {
+			const last = state.log.pop()
+			if (!last) return
+			byId(last.id).paid -= last.amt
+			state.flash = null
+			render()
+		}
+		function reset() {
+			Object.assign(state, { time: 18, debts: fresh(starts[state.cond]), log: [], flash: null, fx: null })
+			if (state.cond === 'part') {
+				// Opens just after a 10-pushup payment, so the first screen shows the line a payment writes.
+				state.log = [{ id: 'push', amt: 10 }]
+				state.flash = { amt: 10, unit: 'pushups', via: 'app', gained: Math.round(share(byId('push'), 10) * DAY) }
+			}
+			el('time').value = state.time
+			render()
+		}
+		el('phone').addEventListener('click', (e) => {
+			const t = e.target.closest('[data-act]')
+			if (!t || t.disabled) return
+			if (t.dataset.act === 'pay') pay(t.dataset.id, Number(t.dataset.amt), t.dataset.via)
+			if (t.dataset.act === 'undo') undo()
+		})
+		el('screen').addEventListener('change', (e) => {
+			state.screen = e.detail.value
+			render()
+		})
+		el('cond').addEventListener('change', (e) => {
+			state.cond = e.detail.value
+			reset()
+		})
+		el('time').addEventListener('input', (e) => {
+			state.time = Number(e.target.value)
+			state.flash = null
+			render()
+		})
+		el('reset').addEventListener('click', reset)
+		reset()
+	}
+</script>

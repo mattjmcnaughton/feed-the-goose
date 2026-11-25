@@ -1,0 +1,594 @@
+<div class="ui-header">
+	<p class="ui-title" id="title" style="text-wrap: balance"></p>
+	<p class="ui-sub" style="max-width: 68ch; text-wrap: pretty">
+		Three takes on each goose moment. Pick one per moment and it plays; replay it, drop to quarter
+		speed, or drag the frame slider to step through it. It opens on my picks. Step counts use the
+		Outrun rule at 6 pm; the art is still a placeholder.
+	</p>
+</div>
+<div class="ptm-layout">
+	<div class="ui-stack" style="--gap: 8px; align-content: start">
+		<div class="stage">
+			<div id="scene"></div>
+			<div class="readout">
+				<div class="head" id="head"></div>
+				<div class="sub" id="sub"></div>
+			</div>
+		</div>
+		<div class="ui-row" style="justify-content: space-between; flex-wrap: wrap">
+			<button class="ui-btn sm" id="replay"><i data-icon="play" class="sm"></i>Replay</button>
+			<div class="ui-seg" id="speed" aria-label="Playback speed">
+				<button data-value="1" aria-selected="true">Full speed</button>
+				<button data-value="0.25">Quarter speed</button>
+			</div>
+		</div>
+		<label class="ui-row">
+			<span class="ui-label">Frame</span>
+			<input class="ui-range" id="scrub" type="range" min="0" max="1" step="0.01" value="0" style="flex: 1; min-width: 0" />
+			<span class="ui-label ui-num" id="clock" style="width: 84px; text-align: right; white-space: nowrap"></span>
+		</label>
+	</div>
+	<div class="ui-stack" id="groups" style="--gap: 16px; align-content: start"></div>
+</div>
+<p class="ui-caption" style="margin-top: 12px; max-width: 68ch; text-wrap: pretty">
+	Every clip poses the same jointed goose (neck, head, beak, wing, legs, belly, eyes) over time, so
+	the picks can be rebuilt in SwiftUI or Rive from the same joints. With Reduce Motion on, each
+	moment jumps to its last frame. Also considered, not drawn: a warning honk when the goose gets
+	within 10 steps, and sound and haptics, which a browser mock cannot show.
+</p>
+<style>
+	@font-face {
+		font-family: 'PTM Shrik';
+		src: url(data:font/woff2;base64,{{FONT_SHRIK}}) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	.stage {
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+		background: #fffaf0;
+		color: #1d1a2f;
+		font-family: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.25;
+	}
+	.stage svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-bottom: 3px solid #1d1a2f;
+	}
+	.stage .readout {
+		box-sizing: border-box;
+		padding: 12px 16px 14px;
+		min-height: 122px;
+	}
+	.stage .head {
+		font-family: 'PTM Shrik', 'Cooper Black', Georgia, serif;
+		font-size: 24px;
+		line-height: 1.1;
+		transform-origin: 0 50%;
+	}
+	.stage .head.bad {
+		color: #d63a1e;
+	}
+	.stage .head.good {
+		color: #17804a;
+	}
+	.stage .sub {
+		margin-top: 4px;
+	}
+	.moment {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 2px 8px;
+		margin: 0;
+	}
+	.what {
+		margin: 0;
+		max-width: 46ch;
+		text-wrap: pretty;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.stage .head.pop {
+			animation: ptm-pop 0.2s ease-out;
+		}
+	}
+	@keyframes ptm-pop {
+		from {
+			transform: scale(0.94);
+		}
+	}
+</style>
+<script>
+	{
+{{INCLUDE:rig.js}}
+		const el = (id) => document.getElementById(id)
+		const E = {
+			io: (p) => (p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2),
+			out: (p) => 1 - (1 - p) ** 3,
+			in: (p) => p ** 2.2,
+		}
+		// Keyframes: [[time, value], ...], eased between neighbours and held outside them.
+		const k = (t, pts, e = E.io) => {
+			if (t <= pts[0][0]) return pts[0][1]
+			for (let i = 1; i < pts.length; i++)
+				if (t <= pts[i][0]) return lerp(pts[i - 1][1], pts[i][1], e((t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0])))
+			return pts.at(-1)[1]
+		}
+		const seg = (t, a, b, e = E.io) => e(clamp((t - a) / (b - a)))
+		const pulse = (t, a, b) => Math.sin(Math.PI * clamp((t - a) / (b - a)))
+		const pop = (t, t0) => k(t, [[t0, 0.4], [t0 + 0.12, 1.15], [t0 + 0.22, 1]], E.out)
+		const arc = (t, t0, t1, from, to, h, spin = 540) => {
+			const p = clamp((t - t0) / (t1 - t0))
+			return { x: lerp(from.x, to.x, p), y: lerp(from.y, to.y, p) - h * 4 * p * (1 - p), r: spin * p }
+		}
+		const spray = (t, t0, o, n = 4, spread = 44, up = 60) => {
+			const age = t - t0
+			if (age < 0 || age > 0.5) return []
+			return Array.from({ length: n }, (_, i) => ({
+				x: o.x + (i - (n - 1) / 2) * spread * age,
+				y: o.y - (up + 22 * ((i * 7) % 3)) * age + 300 * age * age,
+			}))
+		}
+		// The ground scrolls at V while you run. halt() slows you to `to` of full speed between a and b.
+		const V = 64
+		const halt = (t, a, b, to = 0) => {
+			const p = clamp((t - a) / (b - a))
+			const scroll = V * (Math.min(t, a) + (b - a) * (p - ((1 - to) * p * p) / 2) + to * Math.max(0, t - b))
+			return { scroll, phase: (14 * scroll) / V }
+		}
+		const bobAt = (phase) => -2.5 * Math.abs(Math.sin(phase))
+		const HAND = { x: YOU_X + 5, y: 114 }
+		const steps = (lead) => Math.round(lead * DAY)
+
+		// A crust: 10 of 50 pushups, one of three habits, at 6 pm with the goose 45 steps back.
+		const L0 = 0.45
+		const L1 = L0 + (1 / 3) * (10 / 50)
+		const g0 = G(L0)
+		const g1 = G(L1)
+		const eatSay = (done) =>
+			done
+				? { head: `The goose is ${steps(L1)} steps back`, sub: `Pushups 30 of 50. That crust bought you ${steps(L1) - steps(L0)} steps.` }
+				: { head: `The goose is ${steps(L0)} steps back`, sub: 'Pushups 20 of 50. Tossing a crust for 10 more.' }
+		const paidSay = (done, sub) =>
+			done
+				? { head: 'The goose is fed', tone: 'good', sub }
+				: { head: `The goose is ${steps(L0)} steps back`, sub: 'Reading 15 of 20. Tossing the loaf for the last 5 pages.' }
+		// Caught: nearly midnight with the goose 6 steps back.
+		const C0 = 0.06
+		const gc = G(C0)
+		const NIGHT = skyAt(MIDNIGHT)
+		const caughtSay = (done) =>
+			done
+				? { head: 'The goose got you', tone: 'bad', sub: 'Today is locked. A new chase starts at dawn.' }
+				: { head: `The goose is ${steps(C0)} steps back`, sub: 'Pushups 20 of 50, and it is almost midnight.' }
+
+		const CLIPS = {
+			snap: {
+				name: 'Snap',
+				dur: 1.3,
+				poster: 0.36,
+				what: 'The goose stretches up, snaps the crust out of the air, and the lump slides down its neck.',
+				cost: 'It never fully stops, so the ground you gain reads mostly from the number.',
+				frame(t) {
+					const hit = 0.42
+					const at = mouth({ gx: g0, neck: -14, head: -18 })
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx: k(t, [[hit, g0], [0.85, g0 - 30], [1.3, g1]]),
+						neck: k(t, [[0.15, 0], [0.38, -14], [0.5, 8], [0.72, 0]]),
+						head: k(t, [[0.15, 0], [0.38, -18], [0.5, 10], [0.75, 0]]),
+						beak: k(t, [[0.18, 0], [0.34, 44], [hit - 0.02, 44], [hit + 0.03, 0]]),
+						squash: k(t, [[hit, 1], [0.5, 0.92], [0.62, 1.05], [0.76, 1]]),
+						bulge: (t - 0.5) / 0.4,
+						eye: t >= hit && t < 1.05 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						crust: t < hit ? arc(t, 0.06, hit, HAND, at, 30) : null,
+						crumbs: spray(t, hit, at, 3),
+						say: eatSay(t >= hit),
+					}
+				},
+			},
+			forage: {
+				name: 'Forage',
+				dur: 2.1,
+				poster: 1.12,
+				what: 'The crust lands in the grass. The goose skids to a stop, pecks it up in three bites, then sprints to catch up.',
+				cost: 'Two seconds is long for something you may trigger five times in a row.',
+				frame(t) {
+					const land = 0.32
+					const stop = 0.6
+					const go = 1.5
+					const gx = t < stop ? g0 : t < go ? g0 - V * (t - stop) : k(t, [[go, g0 - V * (go - stop)], [2.1, g1]], E.out)
+					// It lands where the goose's lowered beak will be when it stops.
+					const x0 = g0 + 107 + V * (stop - land)
+					const pecks = [0.85, 1.07, 1.29]
+					const n = pecks.filter((p) => t >= p).length
+					const neck = k(t, [[0.62, 0], [0.85, 62], [0.96, 30], [1.07, 62], [1.18, 30], [1.29, 62], [1.46, 0]])
+					const skid = clamp((t - 0.56) / 0.4)
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx,
+						legs: t >= stop && t < go ? 'stand' : 'run',
+						tilt: k(t, [[0.5, 0], [0.6, -9], [0.76, 0]]),
+						neck,
+						head: neck * 0.48,
+						beak: k(t, [[0.7, 0], [0.8, 34], [0.85, 0], [0.96, 34], [1.07, 0], [1.18, 34], [1.29, 0]]),
+						squash: k(t, [[1.42, 1], [1.5, 0.93], [1.62, 1.04], [1.74, 1]]),
+						bulge: (t - 1.42) / 0.35,
+						eye: t >= 1.29 && t < 1.8 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						puff: t > 0.56 && t < 0.96 ? { x: gx + 54, y: 146, s: lerp(0.8, 1.9, skid), o: 1 - skid } : null,
+						crust:
+							t < land
+								? arc(t, 0.06, land, HAND, { x: x0, y: 143 }, 36)
+								: n < 3
+									? { x: x0 - V * (t - land), y: 143, s: [1, 0.72, 0.44][n] }
+									: null,
+						crumbs: n ? spray(t, pecks[n - 1], { x: gx + 107, y: 142 }, 4) : [],
+						say: eatSay(t >= 1.29),
+					}
+				},
+			},
+			bonk: {
+				name: 'Bonk',
+				dur: 1.8,
+				poster: 0.36,
+				what: 'The crust bounces off its forehead. It freezes, then catches the rebound.',
+				cost: 'The most “fend off” of the three, and the one most likely to read as mean to the goose.',
+				frame(t) {
+					const hit = 0.3
+					const snapAt = 0.86
+					const go = 1.3
+					const gx = t < hit ? g0 : t < go ? g0 - V * (t - hit) : k(t, [[go, g0 - V * (go - hit)], [1.8, g1]], E.out)
+					const brow = { x: g0 + 108, y: GOOSE_Y + 14 }
+					const up = mouth({ gx: g0 - V * (snapAt - hit), neck: -16, head: -42 })
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx,
+						legs: t >= hit && t < go ? 'stand' : 'run',
+						tilt: k(t, [[hit, 0], [0.38, -12], [0.62, 0]]),
+						neck: k(t, [[hit, 0], [0.36, -28], [0.6, -12], [snapAt, -16], [0.97, 5], [1.15, 0]]),
+						head: k(t, [[hit, 0], [0.36, -22], [0.6, -34], [snapAt, -42], [0.97, 10], [1.15, 0]]),
+						beak: k(t, [[0.55, 0], [0.74, 50], [snapAt - 0.01, 50], [snapAt + 0.04, 0]]),
+						squash: k(t, [[snapAt, 1], [0.93, 0.92], [1.05, 1.04], [1.15, 1]]),
+						bulge: (t - 0.95) / 0.35,
+						eye: t < hit ? 'angry' : t < snapAt ? 'wide' : t < 1.4 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						crust: t < hit ? arc(t, 0.05, hit, HAND, brow, 8, 360) : t < snapAt ? arc(t, hit, snapAt, brow, up, 44, 900) : null,
+						crumbs: spray(t, snapAt, up, 3),
+						burst:
+							t >= hit && t < 0.75
+								? { text: 'bonk', x: brow.x + 18, y: brow.y - 20, size: 15, r: -8, s: pop(t, hit), o: 1 - seg(t, 0.6, 0.75) }
+								: null,
+						say: eatSay(t >= snapAt),
+					}
+				},
+			},
+			feast: {
+				name: 'Feast',
+				dur: 3.6,
+				poster: 1.6,
+				what: 'Three bites, a full belly, and it falls asleep where it stands.',
+				cost: 'The longest clip, so it needs tap to skip.',
+				frame(t) {
+					const m = halt(t, 0.3, 0.9)
+					const land = 0.45
+					const lx = g0 + 128 - Math.max(0, m.scroll - halt(land, 0.3, 0.9).scroll)
+					const bites = [1.2, 1.55, 1.9]
+					const n = bites.filter((b) => t >= b).length
+					const gx = k(t, [[land, g0], [0.9, g0 - 10]]) + k(t, [[1.2, 0], [1.4, 11], [1.55, 11], [1.75, 22]])
+					const neck = k(t, [[0.5, 0], [0.62, -12], [0.95, -12], [1.2, 52], [1.34, 26], [1.55, 52], [1.69, 26], [1.9, 52], [2.15, 0], [2.6, 0], [3, -4]])
+					const sit = seg(t, 2.5, 2.8, E.in)
+					return {
+						...m,
+						gx,
+						gy: -7 * pulse(t, 0.5, 0.72) + 13 * sit,
+						legs: t < 0.55 ? 'run' : sit > 0.6 ? 'sit' : 'stand',
+						neck,
+						head: (neck > 0 ? neck * 0.42 : neck * 0.6) + 14 * seg(t, 2.8, 3.1),
+						beak: k(t, [[1.05, 0], [1.14, 40], [1.2, 0], [1.4, 40], [1.55, 0], [1.75, 40], [1.9, 0]]),
+						belly: k(t, [[1.2, 1], [1.3, 1.07], [1.55, 1.07], [1.65, 1.14], [1.9, 1.14], [2, 1.2]]),
+						squash: k(t, [[2.78, 1], [2.86, 0.9], [3, 1]]),
+						bulge: (t - 2.12) / 0.3,
+						eye: t < 0.5 ? 'angry' : t < 1.05 ? 'wide' : t < 2.9 ? 'happy' : 'shut',
+						loaf:
+							t < land
+								? arc(t, 0.06, land, HAND, { x: g0 + 128, y: 137 }, 42, 360)
+								: n < 3
+									? { x: lx, y: 137, eaten: n / 3 }
+									: null,
+						crumbs: n ? spray(t, bites[n - 1], { x: gx + 115, y: 140 }, 4) : [],
+						zs: t >= 3 ? { x: gx + 112, y: GOOSE_Y + 26, p: (t - 3) / 1.4 } : null,
+						ylegs: t < 0.9 ? 'run' : 'stand',
+						yarms: t < 0.14 || t >= 2 ? 'up' : 'run',
+						yy: -10 * (pulse(t, 2, 2.3) + pulse(t, 2.4, 2.7)),
+						say: paidSay(t >= 1.9, 'Asleep until dawn. Tomorrow it starts 100 steps back.'),
+					}
+				},
+			},
+			truce: {
+				name: 'Truce',
+				dur: 3,
+				poster: 1.7,
+				what: 'It catches the loaf, turns round, and waddles off the screen, dropping crumbs.',
+				cost: 'Leaves an empty field for the rest of the evening.',
+				frame(t) {
+					const m = halt(t, 0.3, 0.9)
+					const snapAt = 0.45
+					const turn = 1
+					const flip = t < turn ? 1 : -1
+					const gx = k(t, [[snapAt, g0], [0.9, g0 - 8]]) + k(t, [[1.15, 0], [3, -(g0 - 8) - 150]], E.in)
+					const phase = t < 1.15 ? m.phase : (t - 1.15) * 10
+					const legs = t < 0.55 || t >= 1.15 ? 'run' : 'stand'
+					const pose = { gx, flip, neck: k(t, [[0.15, 0], [0.4, -10], [0.7, -6]]), head: k(t, [[0.15, 0], [0.4, -14], [0.7, -6]]) }
+					const held = mouth(pose, 23)
+					const trail = [g0 + 62, g0 + 22, g0 - 24, g0 - 70].filter((x) => t > turn && held.x < x)
+					return {
+						...m,
+						...pose,
+						phase,
+						legs,
+						beak: k(t, [[0.2, 0], [0.4, 46], [snapAt, 46], [0.52, 30]]),
+						squash: k(t, [[0.9, 1], [turn, 0.84], [1.1, 1]]),
+						eye: t >= snapAt ? 'happy' : 'angry',
+						loaf:
+							t < snapAt
+								? arc(t, 0.06, snapAt, HAND, mouth({ gx: g0, neck: -10, head: -14 }, 23), 38, 360)
+								: { x: held.x, y: held.y + (legs === 'run' ? bobAt(phase) : 0), r: flip * (pose.neck + pose.head), s: 0.9 },
+						crumbs: trail.map((x) => ({ x, y: 148 })),
+						ylegs: t < 0.9 ? 'run' : 'stand',
+						yarms: t < 0.14 || t >= 1.3 ? 'up' : 'run',
+						yrot: t >= 1.3 ? 5 * Math.sin((t - 1.3) * 9) * (1 - seg(t, 2.6, 3)) : 0,
+						say: paidSay(t >= snapAt + 0.15, 'It took the loaf and left. Back at dawn, 100 steps behind.'),
+					}
+				},
+			},
+			walk: {
+				name: 'Walk',
+				dur: 3.2,
+				poster: 2.3,
+				what: 'It catches the loaf, then trots up and walks beside you with it.',
+				cost: 'On a small widget, a goose next to you looks like a goose that caught you.',
+				frame(t) {
+					const m = halt(t, 0.5, 1.4, 0.4)
+					const snapAt = 0.45
+					const gx = k(t, [[0.7, g0], [1.9, 98]])
+					const pose = { gx, neck: k(t, [[0.15, 0], [0.4, -10], [0.7, -6], [2, -6], [2.3, 4], [2.7, -4]]), head: k(t, [[0.15, 0], [0.4, -14], [0.7, -6], [2, -6], [2.3, 8], [2.7, -4]]) }
+					const held = mouth(pose, 23)
+					return {
+						...m,
+						...pose,
+						beak: k(t, [[0.2, 0], [0.4, 46], [snapAt, 46], [0.52, 30]]),
+						wing: -30 * (pulse(t, 2.05, 2.3) + pulse(t, 2.35, 2.6)),
+						eye: t >= snapAt ? 'happy' : 'angry',
+						loaf:
+							t < snapAt
+								? arc(t, 0.06, snapAt, HAND, mouth({ gx: g0, neck: -10, head: -14 }, 23), 38, 360)
+								: { x: held.x, y: held.y + bobAt(m.phase), r: pose.neck + pose.head, s: 0.9 },
+						yarms: t < 0.14 ? 'up' : 'run',
+						say: paidSay(t >= snapAt + 0.15, 'It walks you home. Tomorrow it starts 100 steps back.'),
+					}
+				},
+			},
+			peck: {
+				name: 'Peck',
+				dur: 2.4,
+				poster: 0.72,
+				what: 'A lunge, one peck, and you land on your backside while it honks over you.',
+				cost: 'Slapstick at your expense, which may sting on a bad day.',
+				frame(t) {
+					const hit = 0.55
+					const dt = t - hit
+					return {
+						sky: NIGHT,
+						...halt(t, hit - 0.05, hit + 0.1),
+						gx: k(t, [[0, gc], [0.5, 119]], E.in),
+						legs: t < hit ? 'run' : 'stand',
+						neck: k(t, [[0.2, 0], [0.44, -14], [hit, 30], [0.85, 30], [1.1, -8]]),
+						head: k(t, [[0.2, 0], [0.44, -10], [hit, 24], [0.85, 24], [1.1, -4]]),
+						beak: k(t, [[0.3, 0], [0.44, 34], [hit, 0]]) + 36 * (pulse(t, 1.2, 1.5) + pulse(t, 1.65, 1.95)),
+						wing: -48 * (pulse(t, 1.15, 1.4) + pulse(t, 1.4, 1.65) + pulse(t, 1.65, 1.9)),
+						shake: dt >= 0 ? 5 * Math.sin(dt * 55) * Math.exp(-dt * 7) : 0,
+						burst: dt >= 0 && t < 2 ? { text: 'HONK!', x: 168, y: 54, size: 28, r: -7, s: pop(t, hit), o: 1 - seg(t, 1.7, 2) } : null,
+						yx: k(t, [[hit, 0], [1.05, 20]], E.out),
+						yy: -30 * pulse(t, hit, 1.05) + 13 * seg(t, hit, 1.05, E.in) - 4 * pulse(t, 1.05, 1.25),
+						yrot: k(t, [[hit, 0], [0.8, 30], [1.05, 0]]),
+						ylegs: t < hit ? 'run' : t < 0.95 ? 'stand' : 'sit',
+						yarms: t >= hit ? 'up' : 'run',
+						say: caughtSay(t >= hit),
+					}
+				},
+			},
+			scuffle: {
+				name: 'Scuffle',
+				dur: 2.6,
+				poster: 1,
+				what: 'A dust cloud swallows you both. When it clears, the goose is standing over you.',
+				cost: 'Hides the catch itself, and needs the most art to look good.',
+				frame(t) {
+					const meet = 0.45
+					const clear = 1.5
+					const hidden = t >= 1
+					const words = [[0.62, 'HONK!', 196, 60, 24], [0.95, 'ow', 292, 74, 17], [1.25, 'HONK!', 262, 48, 22]]
+					const w = words.filter((x) => t >= x[0]).at(-1)
+					return {
+						sky: NIGHT,
+						...halt(t, meet - 0.05, meet + 0.1),
+						gx: hidden ? 108 : k(t, [[0, gc], [meet, 118]], E.in),
+						legs: t < meet ? 'run' : 'stand',
+						tilt: t >= meet && t < clear ? 7 * Math.sin(t * 30) : 0,
+						neck: hidden ? -14 : 0,
+						head: hidden ? -8 : 0,
+						wing: hidden ? -50 * seg(t, 1.6, 1.85) : 0,
+						beak: 38 * pulse(t, 1.95, 2.35),
+						shake: t >= meet && t < clear ? 3 * Math.sin(t * 52) : 0,
+						puff:
+							t >= meet && t < 1.8
+								? { x: 242, y: 116, s: k(t, [[meet, 0.6], [0.62, 4], [clear, 4], [1.8, 5]], E.out) * (1 + 0.05 * Math.sin(t * 38)), r: 10 * Math.sin(t * 16), o: 1 - seg(t, clear, 1.8) }
+								: null,
+						burst:
+							w && t < clear + 0.1
+								? { text: w[1], x: w[2], y: w[3], size: w[4], r: w[1] === 'ow' ? 8 : -8, s: pop(t, w[0]) }
+								: t >= 1.95
+									? { text: 'honk', x: 186, y: 56, size: 18, r: -6, s: pop(t, 1.95), o: 1 - seg(t, 2.35, 2.6) }
+									: null,
+						crumbs: [...spray(t, 0.7, { x: 236, y: 98 }, 3, 190, 150), ...spray(t, 1.1, { x: 250, y: 96 }, 3, 210, 130)],
+						yx: hidden ? 16 : 0,
+						yy: hidden ? 13 : 0,
+						yrot: hidden ? 6 * Math.sin(t * 10) * (1 - seg(t, 1.8, 2.6)) : 0,
+						ylegs: t < meet ? 'run' : hidden ? 'sit' : 'stand',
+						say: caughtSay(t >= clear),
+					}
+				},
+			},
+			stare: {
+				name: 'Stare',
+				dur: 2.8,
+				poster: 1.5,
+				what: 'It stops beside you and stares for a full second. Then one honk.',
+				cost: 'The pause is the joke, so it cannot be shortened or skipped.',
+				frame(t) {
+					const honk = 1.9
+					const dt = t - honk
+					return {
+						sky: NIGHT,
+						...halt(t, 0.2, 0.7),
+						gx: k(t, [[0, gc], [0.7, 108]], E.out),
+						legs: t < 0.7 ? 'run' : 'stand',
+						neck: k(t, [[0.7, 0], [1, 20], [honk - 0.12, 20], [honk - 0.04, 10], [honk, 22], [2.4, 22], [2.7, 0]]),
+						head: k(t, [[0.7, 0], [1, 18], [2.4, 18], [2.7, 0]]),
+						beak: 52 * pulse(t, honk - 0.03, honk + 0.45),
+						eye: t < 0.9 ? 'angry' : t < honk ? 'wide' : t < 2.35 ? 'angry' : 'happy',
+						shake: dt >= 0 ? 6 * Math.sin(dt * 55) * Math.exp(-dt * 6) : 0,
+						burst: dt >= 0 && t < 2.7 ? { text: 'HONK!', x: 172, y: 50, size: 32, r: -6, s: pop(t, honk), o: 1 - seg(t, 2.4, 2.7) } : null,
+						yx: (t > 1.1 && t < honk ? 0.8 * Math.sin(t * 60) : 0) + 18 * seg(t, honk, honk + 0.3, E.out),
+						yy: -18 * pulse(t, honk, honk + 0.3) + 13 * seg(t, honk + 0.15, honk + 0.3, E.in),
+						yrot: k(t, [[honk, 0], [honk + 0.15, 20], [honk + 0.3, 0]]),
+						ylegs: t < 0.7 ? 'run' : t < honk + 0.25 ? 'stand' : 'sit',
+						yarms: dt >= 0 ? 'up' : 'run',
+						say: caughtSay(dt >= 0),
+					}
+				},
+			},
+		}
+		const MOMENTS = [
+			{ id: 'eat', name: 'A crust lands', when: 'on every log', clips: ['snap', 'forage', 'bonk'] },
+			{ id: 'paid', name: 'The goose is fed', when: 'once a day, on the last log', clips: ['feast', 'truce', 'walk'] },
+			{ id: 'caught', name: 'The goose catches you', when: 'on a missed day', clips: ['peck', 'scuffle', 'stare'] },
+		]
+
+		const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+		const state = { stage: 'eat', pick: { eat: 'snap', paid: 'feast', caught: 'peck' }, t: 0, playing: false, speed: 1 }
+		el('scene').innerHTML = sceneSvg('The goose chasing you')
+		const svg = el('scene').firstElementChild
+		const clip = () => CLIPS[state.pick[state.stage]]
+
+		el('groups').innerHTML = MOMENTS.map(
+			(m) => `<div class="ui-stack" style="--gap: 6px">
+				<p class="moment"><span>${m.name}</span><span class="ui-label">${m.when}</span><span class="ui-chip" data-on="${m.id}">On stage</span></p>
+				<div class="ui-seg" data-moment="${m.id}" aria-label="${m.name}">${m.clips
+					.map((c) => `<button data-value="${c}" aria-selected="${state.pick[m.id] === c}">${CLIPS[c].name}</button>`)
+					.join('')}</div>
+				<p class="what" data-what="${m.id}"></p>
+				<p class="what ui-label" data-cost="${m.id}"></p>
+			</div>`,
+		).join('')
+
+		let said = ''
+		function show() {
+			const c = clip()
+			const pose = c.frame(state.t)
+			draw(svg, pose)
+			const head = el('head')
+			if (pose.say.head !== said) {
+				head.textContent = said = pose.say.head
+				head.className = `head ${pose.say.tone ?? ''}`
+				if (state.playing) {
+					void head.offsetWidth
+					head.classList.add('pop')
+				}
+			}
+			el('sub').textContent = pose.say.sub
+			el('scrub').max = c.dur
+			el('scrub').value = state.t
+			el('clock').textContent = `${state.t.toFixed(2)} of ${c.dur.toFixed(1)} s`
+		}
+		function render() {
+			const name = (id) => CLIPS[state.pick[id]].name
+			el('title').textContent = `Nine goose animations for three moments. Current set: ${name('eat')} for a crust, ${name('paid')} when the goose is fed, ${name('caught')} when it catches you`
+			for (const m of MOMENTS) {
+				const c = CLIPS[state.pick[m.id]]
+				document.querySelector(`[data-on=${m.id}]`).hidden = state.stage !== m.id
+				document.querySelector(`[data-what=${m.id}]`).textContent = `${c.what} ${c.dur.toFixed(1)} s.`
+				document.querySelector(`[data-cost=${m.id}]`).textContent = c.cost
+			}
+			show()
+		}
+		let last = 0
+		function tick(now) {
+			if (!state.playing) return
+			state.t += ((now - last) / 1000) * state.speed
+			last = now
+			if (state.t >= clip().dur) {
+				state.t = clip().dur
+				state.playing = false
+			}
+			show()
+			if (state.playing) requestAnimationFrame(tick)
+		}
+		function play() {
+			if (still) {
+				state.playing = false
+				state.t = clip().dur
+				return render()
+			}
+			const running = state.playing
+			state.t = 0
+			state.playing = true
+			last = performance.now()
+			render()
+			if (!running) requestAnimationFrame(tick)
+		}
+		for (const box of document.querySelectorAll('[data-moment]')) {
+			const id = box.dataset.moment
+			box.addEventListener('change', (e) => {
+				state.stage = id
+				state.pick[id] = e.detail.value
+				play()
+			})
+			// A click on the option that is already picked replays it.
+			box.addEventListener('click', (e) => {
+				const b = e.target.closest('button')
+				if (b && b.dataset.value === state.pick[id]) {
+					state.stage = id
+					play()
+				}
+			})
+		}
+		el('replay').addEventListener('click', play)
+		el('speed').addEventListener('change', (e) => (state.speed = +e.detail.value))
+		el('scrub').addEventListener('input', (e) => {
+			state.playing = false
+			state.t = +e.target.value
+			show()
+		})
+		state.t = clip().poster
+		render()
+	}
+</script>

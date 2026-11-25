@@ -1,0 +1,853 @@
+<!doctype html>
+<!-- Built by docs/prototypes/build.py. Edit the .src.html file in src/, not this file. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feed the Goose prototype: animations</title>
+<style>
+/* A small stand-in for Amp's view kit (colour tokens and ui-* classes), so the prototype opens in any browser. */
+:root{--background:#fff;--foreground:#18181b;--muted-foreground:#71717a;--border:#e4e4e7;--card:#fafafa;--muted:#f0f0f1;--link:#2563eb;--chart-1:#2563eb;--chart-context:#c8c8cc;--radius:8px;--font-sans:system-ui,sans-serif;--font-mono:ui-monospace,monospace}
+html.dark{--background:#111113;--foreground:#ededef;--muted-foreground:#9a9aa3;--border:#2c2c31;--card:#18181b;--muted:#1f1f23;--chart-context:#4a4a52}
+body{margin:0 auto;padding:16px;max-width:760px;box-sizing:border-box;background:var(--background);color:var(--foreground);font:13px/20px var(--font-sans)}
+p{margin:0}
+[hidden]{display:none!important}
+.ui-header{margin-bottom:16px}.ui-title{font-weight:500}.ui-sub,.ui-label{font-size:12px;color:var(--muted-foreground)}
+.ui-muted{color:var(--muted-foreground)}.ui-caption{font-size:11px;color:var(--muted-foreground)}
+.ui-num{font-variant-numeric:tabular-nums}
+.ui-stack{display:grid;gap:var(--gap,12px)}.ui-row{display:flex;align-items:center;gap:8px}
+.ui-seg{display:inline-flex;background:var(--muted);border-radius:8px;padding:2px;width:fit-content}
+.ui-seg button{all:unset;padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted-foreground);white-space:nowrap}
+.ui-seg button[aria-selected=true]{background:var(--background);color:var(--foreground);box-shadow:0 0 0 1px var(--border)}
+.ui-seg button:focus-visible,.ui-btn:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.ui-btn{all:unset;padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--muted)}
+.ui-chip{font-size:11px;padding:0 6px;border-radius:9px;box-shadow:0 0 0 1px var(--border);color:var(--muted-foreground)}
+.ui-table{border-collapse:collapse;width:100%;font-size:12px}.ui-table th{font-weight:400;color:var(--muted-foreground);text-align:left}
+.ui-table th,.ui-table td{padding:4px 8px 4px 0;border-bottom:1px solid var(--border)}.ui-table .num{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+<script>
+window.ui={icon:()=>''}
+document.addEventListener('click',e=>{const b=e.target.closest('.ui-seg button');if(!b)return
+ const seg=b.parentElement;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b))
+ seg.dispatchEvent(new CustomEvent('change',{detail:{value:b.dataset.value}}))})
+if(location.hash==='#dark')document.documentElement.classList.add('dark')
+</script>
+<body>
+<div class="ui-header">
+	<p class="ui-title" id="title" style="text-wrap: balance"></p>
+	<p class="ui-sub" style="max-width: 68ch; text-wrap: pretty">
+		Three takes on each goose moment. Pick one per moment and it plays; replay it, drop to quarter
+		speed, or drag the frame slider to step through it. It opens on my picks. Step counts use the
+		Outrun rule at 6 pm; the art is still a placeholder.
+	</p>
+</div>
+<div class="ptm-layout">
+	<div class="ui-stack" style="--gap: 8px; align-content: start">
+		<div class="stage">
+			<div id="scene"></div>
+			<div class="readout">
+				<div class="head" id="head"></div>
+				<div class="sub" id="sub"></div>
+			</div>
+		</div>
+		<div class="ui-row" style="justify-content: space-between; flex-wrap: wrap">
+			<button class="ui-btn sm" id="replay"><i data-icon="play" class="sm"></i>Replay</button>
+			<div class="ui-seg" id="speed" aria-label="Playback speed">
+				<button data-value="1" aria-selected="true">Full speed</button>
+				<button data-value="0.25">Quarter speed</button>
+			</div>
+		</div>
+		<label class="ui-row">
+			<span class="ui-label">Frame</span>
+			<input class="ui-range" id="scrub" type="range" min="0" max="1" step="0.01" value="0" style="flex: 1; min-width: 0" />
+			<span class="ui-label ui-num" id="clock" style="width: 84px; text-align: right; white-space: nowrap"></span>
+		</label>
+	</div>
+	<div class="ui-stack" id="groups" style="--gap: 16px; align-content: start"></div>
+</div>
+<p class="ui-caption" style="margin-top: 12px; max-width: 68ch; text-wrap: pretty">
+	Every clip poses the same jointed goose (neck, head, beak, wing, legs, belly, eyes) over time, so
+	the picks can be rebuilt in SwiftUI or Rive from the same joints. With Reduce Motion on, each
+	moment jumps to its last frame. Also considered, not drawn: a warning honk when the goose gets
+	within 10 steps, and sound and haptics, which a browser mock cannot show.
+</p>
+<style>
+	@font-face {
+		font-family: 'PTM Shrik';
+		src: url(data:font/woff2;base64,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) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	.stage {
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+		background: #fffaf0;
+		color: #1d1a2f;
+		font-family: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.25;
+	}
+	.stage svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-bottom: 3px solid #1d1a2f;
+	}
+	.stage .readout {
+		box-sizing: border-box;
+		padding: 12px 16px 14px;
+		min-height: 122px;
+	}
+	.stage .head {
+		font-family: 'PTM Shrik', 'Cooper Black', Georgia, serif;
+		font-size: 24px;
+		line-height: 1.1;
+		transform-origin: 0 50%;
+	}
+	.stage .head.bad {
+		color: #d63a1e;
+	}
+	.stage .head.good {
+		color: #17804a;
+	}
+	.stage .sub {
+		margin-top: 4px;
+	}
+	.moment {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 2px 8px;
+		margin: 0;
+	}
+	.what {
+		margin: 0;
+		max-width: 46ch;
+		text-wrap: pretty;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.stage .head.pop {
+			animation: ptm-pop 0.2s ease-out;
+		}
+	}
+	@keyframes ptm-pop {
+		from {
+			transform: scale(0.94);
+		}
+	}
+</style>
+<script>
+	{
+		// Shared by the Pay the Goose views: the scene, the goose and runner rigs, and draw(svg, pose).
+		// Positions are in the scene's 340 x 176 units. Angles are degrees, clockwise.
+		const DAWN = 6
+		const MIDNIGHT = 24
+		const DAY = 100
+		const YOU_X = 231
+		const GOOSE_Y = 55
+		const INKC = '#1d1a2f'
+		const BREAD = '#e8ae4c'
+		const WHITE = '#fffdf7'
+		const PUFF = [[-7, 2, 5], [-1, -5, 6], [6, -3, 5.5], [8, 4, 4.5], [0, 4, 5.5]]
+		const NECK = [[64, 54], [78, 52], [92, 42], [100, 24]]
+		const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+		const lerp = (a, b, p) => a + (b - a) * p
+		// Where the goose stands for a lead: 1 is a full day's head start, 0 is its beak on your back.
+		const G = (lead) => (1 - clamp(lead)) * 116
+		const clock = (h) => {
+			const m = Math.round(h * 60)
+			if (m >= 1440) return 'midnight'
+			if (m === 720) return 'noon'
+			const hh = Math.floor(m / 60)
+			return `${hh % 12 || 12}:${String(m % 60).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'}`
+		}
+		const skyStops = [
+			[6, [255, 214, 165]],
+			[11, [143, 211, 255]],
+			[16, [150, 205, 250]],
+			[18.5, [255, 160, 110]],
+			[20.5, [84, 68, 158]],
+			[24, [38, 33, 92]],
+		]
+		function skyAt(h) {
+			const i = Math.max(1, skyStops.findIndex(([t]) => t >= h))
+			const [t0, a] = skyStops[i - 1]
+			const [t1, b] = skyStops[i]
+			const k = clamp((h - t0) / (t1 - t0))
+			const day = h < 19
+			const p = day ? (h - DAWN) / 13 : (h - 19) / 10
+			return {
+				bg: `rgb(${a.map((v, j) => Math.round(lerp(v, b[j], k))).join(' ')})`,
+				x: 17 + 306 * p,
+				y: 130 - 92 * Math.sin(Math.PI * p),
+				fill: day ? '#ffd23f' : '#fff6d6',
+				stars: clamp((h - 18.5) / 2),
+			}
+		}
+		const neckAt = (s) =>
+			[0, 1].map((i) => (1 - s) ** 3 * NECK[0][i] + 3 * (1 - s) ** 2 * s * NECK[1][i] + 3 * (1 - s) * s ** 2 * NECK[2][i] + s ** 3 * NECK[3][i])
+		let sceneCount = 0
+		function sceneSvg(label) {
+			const clip = `ptm-clip-${sceneCount++}`
+			const ink = `stroke="${INKC}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`
+			const neck = `M${NECK[0]} C${NECK[1]} ${NECK[2]} ${NECK[3]}`
+			const leg = (p, x) =>
+				`<g data-p="${p}"><path d="M${x} 74 V90 H${x + 10}" stroke="${INKC}" stroke-width="7.5"/><path d="M${x} 74 V90 H${x + 10}" stroke="#ff8a1f" stroke-width="3"/></g>`
+			const font = `font-family="'PTM Shrik', 'Cooper Black', Georgia, serif"`
+			return `<svg viewBox="0 0 340 176" role="img" aria-label="${label}">
+				<defs><clipPath id="${clip}"><rect data-p="clip" x="-20" y="-14" width="40" height="28"/></clipPath></defs>
+				<rect data-p="sky" width="340" height="176"/>
+				<g data-p="stars" fill="#fff"><circle cx="41" cy="29" r="1.5"/><circle cx="116" cy="62" r="1.5"/><circle cx="177" cy="22" r="2"/><circle cx="241" cy="56" r="1.5"/><circle cx="306" cy="27" r="1.5"/></g>
+				<circle data-p="orb" r="14.5" stroke="${INKC}" stroke-width="3"/>
+				<g data-p="world">
+					<rect x="-20" y="132" width="380" height="60" fill="#a9d68c"/>
+					<path d="M-20 132 H360" ${ink}/>
+					<path data-p="dashA" d="M-46 146 H386" stroke="${INKC}" stroke-width="3" stroke-dasharray="10 36"/>
+					<path data-p="dashB" d="M-46 160 H386" stroke="${INKC}" stroke-width="3" stroke-dasharray="6 64"/>
+					<g data-p="prop" ${ink}><path d="M176 132 V112 M184 132 V106" fill="none"/><rect x="173.5" y="103" width="5" height="12" rx="2.5" fill="#8a5a2b"/><rect x="181.5" y="97" width="5" height="12" rx="2.5" fill="#8a5a2b"/></g>
+					<g data-p="extra"></g>
+					<g data-p="goose" fill="none" stroke-linecap="round" stroke-linejoin="round">
+						${leg('legA', 46)}${leg('legB', 58)}
+						<g data-p="neckB"><path d="${neck}" stroke="${INKC}" stroke-width="17"/><circle data-p="bulgeB" r="12" fill="${INKC}"/></g>
+						<path data-p="body" data-w="fill" d="M6 40 L26 48 C36 42 52 42 62 46 C74 50 78 62 72 70 C66 78 54 78 44 78 C26 78 12 62 6 40 Z" fill="${WHITE}" ${ink}/>
+						<path data-p="wing" d="M30 54 C38 46 56 46 62 58 C52 66 38 64 30 54 Z" fill="#e6e1f0" ${ink}/>
+						<g data-p="neckF">
+							<path data-w="stroke" d="${neck}" stroke="${WHITE}" stroke-width="11"/>
+							<circle data-p="bulgeF" data-w="fill" r="10.5" fill="${WHITE}"/>
+							<g data-p="head">
+								<path data-p="beakU" d="M107 16 L123 24 L108 27 Z" fill="#ff8a1f" ${ink}/>
+								<path data-p="beakL" d="M107 26 L120 27.5 L105 33 Z" fill="#ff8a1f" ${ink}/>
+								<circle data-w="fill" cx="100" cy="24" r="11" fill="${WHITE}" ${ink}/>
+							</g>
+							<path data-w="stroke" d="M94.5 33.8 L100 24" stroke="${WHITE}" stroke-width="11"/>
+							<g data-p="face" stroke="${INKC}" stroke-width="2.5">
+								<g data-eye="angry"><circle cx="103" cy="21" r="2.6" fill="${INKC}" stroke="none"/><path d="M97 13.5 L107 17"/></g>
+								<g data-eye="happy"><path d="M99.5 22.5 q3.5 -4.5 7 0"/></g>
+								<g data-eye="wide"><circle cx="103" cy="20.5" r="4.4" fill="#fff" stroke-width="2"/><circle cx="103.6" cy="20.5" r="1.7" fill="${INKC}" stroke="none"/></g>
+								<g data-eye="shut"><path d="M99.5 20.5 q3.5 4 7 0"/></g>
+							</g>
+						</g>
+					</g>
+					<g data-p="loaf"><g clip-path="url(#${clip})"><path d="M-17 9 V0 C-17 -11 17 -11 17 0 V9 Z" fill="${BREAD}" ${ink}/><path d="M-8 -5 l2 5 M-1 -6 l2 5 M6 -5 l2 5" fill="none" stroke="${INKC}" stroke-width="2" stroke-linecap="round"/></g><path data-p="cut" ${ink}/></g>
+					<g data-p="crust"><rect x="-7" y="-4.5" width="14" height="9" rx="4" fill="${BREAD}" stroke="${INKC}" stroke-width="2.5"/></g>
+					<g data-p="crumbs" fill="${BREAD}" stroke="${INKC}" stroke-width="1.5">${'<circle r="2.4"/>'.repeat(6)}</g>
+					<g data-p="you" fill="none" ${ink}>
+						<g data-p="ylegA"><path d="M17 38 V55 H23"/></g>
+						<g data-p="ylegB"><path d="M24 38 V55 H30"/></g>
+						<path data-p="yarmsRun" d="M13 24 L4 30 M27 22 L37 18"/>
+						<path data-p="yarmsUp" d="M13 22 L5 9 M27 22 L35 9"/>
+						<rect x="12" y="17" width="16" height="23" rx="6" fill="#ff5a3c"/>
+						<circle cx="20" cy="9" r="7.5" fill="#ffd23f"/>
+					</g>
+					<g data-p="puff"><g fill="${INKC}">${PUFF.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" data-r="${r}"/>`).join('')}</g><g fill="${WHITE}">${PUFF.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g></g>
+					<text data-p="burst" text-anchor="middle" ${font} fill="${INKC}" stroke="${WHITE}" stroke-width="5" paint-order="stroke" stroke-linejoin="round"></text>
+					<g data-p="zs" ${font} fill="#fff6d6" stroke="${INKC}" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round"><text>z</text><text>z</text><text>Z</text></g>
+				</g>
+			</svg>`
+		}
+		const REST = {
+			sky: skyAt(18), shake: 0, phase: 0, scroll: 0,
+			gx: 0, gy: 0, size: 1, tint: WHITE, flip: 1, tilt: 0, squash: 1, belly: 1, neck: 0, head: 0, beak: 0, wing: 0, legs: 'run', eye: 'angry', bulge: -1,
+			yx: 0, yy: 0, yrot: 0, ylegs: 'run', yarms: 'run',
+			crust: null, loaf: null, crumbs: [], burst: null, zs: null, puff: null,
+		}
+		// The point `off` units in front of the goose's head centre, in scene units.
+		function mouth(p, off = 20) {
+			const a = ((p.neck ?? 0) * Math.PI) / 180
+			const b = (((p.neck ?? 0) + (p.head ?? 0)) * Math.PI) / 180
+			const lx = 64 + 36 * Math.cos(a) + 30 * Math.sin(a) + off * Math.cos(b)
+			const ly = 54 + 36 * Math.sin(a) - 30 * Math.cos(a) + off * Math.sin(b) + 2
+			const z = p.size ?? 1
+			const fx = (p.flip ?? 1) < 0 ? 120 - lx : lx
+			return { x: p.gx + 52 + (fx - 52) * z, y: GOOSE_Y + (p.gy ?? 0) + 91 + (ly - 91) * z }
+		}
+		function draw(svg, pose) {
+			const p = { ...REST, ...pose }
+			if (!svg._q) {
+				svg._q = {}
+				svg.querySelectorAll('[data-p]').forEach((n) => (svg._q[n.dataset.p] = n))
+			}
+			const q = svg._q
+			const set = (n, k, v) => n.setAttribute(k, v)
+			const tf = (n, s) => set(n, 'transform', s)
+			const show = (n, on) => set(n, 'display', on ? 'inline' : 'none')
+			const rot = (a, x, y) => `rotate(${a.toFixed(1)} ${x} ${y})`
+			const at = (o) => `translate(${o.x.toFixed(1)} ${o.y.toFixed(1)}) rotate(${(o.r ?? 0).toFixed(1)}) scale(${(o.s ?? 1).toFixed(3)})`
+			set(q.sky, 'fill', p.sky.bg)
+			set(q.stars, 'opacity', p.sky.stars)
+			set(q.orb, 'cx', p.sky.x.toFixed(1))
+			set(q.orb, 'cy', p.sky.y.toFixed(1))
+			set(q.orb, 'fill', p.sky.fill)
+			tf(q.world, `translate(${p.shake.toFixed(1)} 0)`)
+			set(q.dashA, 'stroke-dashoffset', (p.scroll % 46).toFixed(1))
+			set(q.dashB, 'stroke-dashoffset', (p.scroll % 70).toFixed(1))
+			tf(q.prop, `translate(${(((((80 - p.scroll) % 440) + 440) % 440) - 230).toFixed(1)} 0)`)
+			if (svg._tint !== p.tint) {
+				svg.querySelectorAll('[data-w]').forEach((n) => set(n, n.dataset.w, p.tint))
+				svg._tint = p.tint
+			}
+
+			const run = p.legs === 'run'
+			const bob = run ? -2.5 * Math.abs(Math.sin(p.phase)) : 0
+			const swing = run ? 26 * Math.sin(p.phase) : 0
+			tf(
+				q.goose,
+				`translate(${p.gx.toFixed(1)} ${(GOOSE_Y + p.gy + bob).toFixed(1)}) translate(52 91) scale(${p.size.toFixed(3)}) translate(-52 -91)${p.flip < 0 ? ' translate(120 0) scale(-1 1)' : ''} ${rot(p.tilt, 44, 88)} translate(0 91) scale(1 ${p.squash.toFixed(3)}) translate(0 -91)`,
+			)
+			show(q.legA, p.legs === 'run' || p.legs === 'stand')
+			show(q.legB, p.legs === 'run' || p.legs === 'stand')
+			tf(q.legA, rot(swing, 46, 74))
+			tf(q.legB, rot(-swing, 58, 74))
+			tf(q.neckB, rot(p.neck, 64, 54))
+			tf(q.neckF, rot(p.neck, 64, 54))
+			tf(q.head, rot(p.head, 100, 24))
+			tf(q.face, rot(p.head, 100, 24))
+			tf(q.beakU, rot(-0.3 * p.beak, 107, 26))
+			tf(q.beakL, rot(0.7 * p.beak, 107, 26))
+			tf(q.wing, rot(p.wing, 60, 57))
+			tf(q.body, `translate(44 62) scale(${p.belly.toFixed(3)}) translate(-44 -62)`)
+			const swallowing = p.bulge > 0 && p.bulge < 1
+			show(q.bulgeB, swallowing)
+			show(q.bulgeF, swallowing)
+			if (swallowing) {
+				const [bx, by] = neckAt(1 - p.bulge)
+				for (const n of [q.bulgeB, q.bulgeF]) {
+					set(n, 'cx', bx.toFixed(1))
+					set(n, 'cy', by.toFixed(1))
+				}
+			}
+			for (const n of q.face.children) show(n, n.dataset.eye === p.eye)
+
+			const sat = p.ylegs === 'sit'
+			const stride = p.ylegs === 'run' ? 30 * Math.sin(p.phase + 1) : 0
+			const ybob = p.ylegs === 'run' ? -2 * Math.abs(Math.sin(p.phase + 1)) : 0
+			tf(q.you, `translate(${(YOU_X + p.yx).toFixed(1)} ${(96 + p.yy + ybob).toFixed(1)}) scale(0.9) ${rot(p.yrot, 20, 30)}`)
+			tf(q.ylegA, rot(sat ? -78 : stride, 17, 38))
+			tf(q.ylegB, rot(sat ? -90 : -stride, 24, 38))
+			show(q.yarmsRun, p.yarms !== 'up')
+			show(q.yarmsUp, p.yarms === 'up')
+
+			show(q.crust, !!p.crust)
+			if (p.crust) tf(q.crust, at(p.crust))
+			show(q.loaf, !!p.loaf)
+			if (p.loaf) {
+				const eaten = p.loaf.eaten ?? 0
+				const x = -18.5 + 37 * eaten
+				tf(q.loaf, at(p.loaf))
+				set(q.clip, 'x', x.toFixed(1))
+				show(q.cut, eaten > 0 && eaten < 1)
+				set(q.cut, 'd', `M${x.toFixed(1)} ${(-8.2 * Math.sqrt(clamp(1 - (x / 17) ** 2))).toFixed(1)} V9`)
+			}
+			;[...q.crumbs.children].forEach((n, i) => {
+				show(n, i < p.crumbs.length)
+				if (i < p.crumbs.length) tf(n, `translate(${p.crumbs[i].x.toFixed(1)} ${p.crumbs[i].y.toFixed(1)})`)
+			})
+			show(q.burst, !!p.burst)
+			if (p.burst) {
+				q.burst.textContent = p.burst.text
+				set(q.burst, 'font-size', p.burst.size ?? 22)
+				set(q.burst, 'opacity', clamp(p.burst.o ?? 1).toFixed(2))
+				tf(q.burst, at(p.burst))
+			}
+			show(q.zs, !!p.zs)
+			if (p.zs)
+				[...q.zs.children].forEach((n, i) => {
+					const k = (p.zs.p + i / 3) % 1
+					set(n, 'font-size', 12 + 4 * i)
+					set(n, 'opacity', Math.sin(Math.PI * k).toFixed(2))
+					tf(n, `translate(${(p.zs.x + 7 * i + 8 * k).toFixed(1)} ${(p.zs.y - 24 * k).toFixed(1)})`)
+				})
+			show(q.puff, !!p.puff)
+			if (p.puff) {
+				set(q.puff, 'opacity', clamp(p.puff.o ?? 1).toFixed(2))
+				tf(q.puff, at(p.puff))
+				// The ink ring stays about 2.5 units wide at any cloud size.
+				for (const n of q.puff.firstElementChild.children) set(n, 'r', (+n.dataset.r + 2.5 / (p.puff.s ?? 1)).toFixed(2))
+			}
+		}
+		const el = (id) => document.getElementById(id)
+		const E = {
+			io: (p) => (p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2),
+			out: (p) => 1 - (1 - p) ** 3,
+			in: (p) => p ** 2.2,
+		}
+		// Keyframes: [[time, value], ...], eased between neighbours and held outside them.
+		const k = (t, pts, e = E.io) => {
+			if (t <= pts[0][0]) return pts[0][1]
+			for (let i = 1; i < pts.length; i++)
+				if (t <= pts[i][0]) return lerp(pts[i - 1][1], pts[i][1], e((t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0])))
+			return pts.at(-1)[1]
+		}
+		const seg = (t, a, b, e = E.io) => e(clamp((t - a) / (b - a)))
+		const pulse = (t, a, b) => Math.sin(Math.PI * clamp((t - a) / (b - a)))
+		const pop = (t, t0) => k(t, [[t0, 0.4], [t0 + 0.12, 1.15], [t0 + 0.22, 1]], E.out)
+		const arc = (t, t0, t1, from, to, h, spin = 540) => {
+			const p = clamp((t - t0) / (t1 - t0))
+			return { x: lerp(from.x, to.x, p), y: lerp(from.y, to.y, p) - h * 4 * p * (1 - p), r: spin * p }
+		}
+		const spray = (t, t0, o, n = 4, spread = 44, up = 60) => {
+			const age = t - t0
+			if (age < 0 || age > 0.5) return []
+			return Array.from({ length: n }, (_, i) => ({
+				x: o.x + (i - (n - 1) / 2) * spread * age,
+				y: o.y - (up + 22 * ((i * 7) % 3)) * age + 300 * age * age,
+			}))
+		}
+		// The ground scrolls at V while you run. halt() slows you to `to` of full speed between a and b.
+		const V = 64
+		const halt = (t, a, b, to = 0) => {
+			const p = clamp((t - a) / (b - a))
+			const scroll = V * (Math.min(t, a) + (b - a) * (p - ((1 - to) * p * p) / 2) + to * Math.max(0, t - b))
+			return { scroll, phase: (14 * scroll) / V }
+		}
+		const bobAt = (phase) => -2.5 * Math.abs(Math.sin(phase))
+		const HAND = { x: YOU_X + 5, y: 114 }
+		const steps = (lead) => Math.round(lead * DAY)
+
+		// A crust: 10 of 50 pushups, one of three habits, at 6 pm with the goose 45 steps back.
+		const L0 = 0.45
+		const L1 = L0 + (1 / 3) * (10 / 50)
+		const g0 = G(L0)
+		const g1 = G(L1)
+		const eatSay = (done) =>
+			done
+				? { head: `The goose is ${steps(L1)} steps back`, sub: `Pushups 30 of 50. That crust bought you ${steps(L1) - steps(L0)} steps.` }
+				: { head: `The goose is ${steps(L0)} steps back`, sub: 'Pushups 20 of 50. Tossing a crust for 10 more.' }
+		const paidSay = (done, sub) =>
+			done
+				? { head: 'The goose is fed', tone: 'good', sub }
+				: { head: `The goose is ${steps(L0)} steps back`, sub: 'Reading 15 of 20. Tossing the loaf for the last 5 pages.' }
+		// Caught: nearly midnight with the goose 6 steps back.
+		const C0 = 0.06
+		const gc = G(C0)
+		const NIGHT = skyAt(MIDNIGHT)
+		const caughtSay = (done) =>
+			done
+				? { head: 'The goose got you', tone: 'bad', sub: 'Today is locked. A new chase starts at dawn.' }
+				: { head: `The goose is ${steps(C0)} steps back`, sub: 'Pushups 20 of 50, and it is almost midnight.' }
+
+		const CLIPS = {
+			snap: {
+				name: 'Snap',
+				dur: 1.3,
+				poster: 0.36,
+				what: 'The goose stretches up, snaps the crust out of the air, and the lump slides down its neck.',
+				cost: 'It never fully stops, so the ground you gain reads mostly from the number.',
+				frame(t) {
+					const hit = 0.42
+					const at = mouth({ gx: g0, neck: -14, head: -18 })
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx: k(t, [[hit, g0], [0.85, g0 - 30], [1.3, g1]]),
+						neck: k(t, [[0.15, 0], [0.38, -14], [0.5, 8], [0.72, 0]]),
+						head: k(t, [[0.15, 0], [0.38, -18], [0.5, 10], [0.75, 0]]),
+						beak: k(t, [[0.18, 0], [0.34, 44], [hit - 0.02, 44], [hit + 0.03, 0]]),
+						squash: k(t, [[hit, 1], [0.5, 0.92], [0.62, 1.05], [0.76, 1]]),
+						bulge: (t - 0.5) / 0.4,
+						eye: t >= hit && t < 1.05 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						crust: t < hit ? arc(t, 0.06, hit, HAND, at, 30) : null,
+						crumbs: spray(t, hit, at, 3),
+						say: eatSay(t >= hit),
+					}
+				},
+			},
+			forage: {
+				name: 'Forage',
+				dur: 2.1,
+				poster: 1.12,
+				what: 'The crust lands in the grass. The goose skids to a stop, pecks it up in three bites, then sprints to catch up.',
+				cost: 'Two seconds is long for something you may trigger five times in a row.',
+				frame(t) {
+					const land = 0.32
+					const stop = 0.6
+					const go = 1.5
+					const gx = t < stop ? g0 : t < go ? g0 - V * (t - stop) : k(t, [[go, g0 - V * (go - stop)], [2.1, g1]], E.out)
+					// It lands where the goose's lowered beak will be when it stops.
+					const x0 = g0 + 107 + V * (stop - land)
+					const pecks = [0.85, 1.07, 1.29]
+					const n = pecks.filter((p) => t >= p).length
+					const neck = k(t, [[0.62, 0], [0.85, 62], [0.96, 30], [1.07, 62], [1.18, 30], [1.29, 62], [1.46, 0]])
+					const skid = clamp((t - 0.56) / 0.4)
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx,
+						legs: t >= stop && t < go ? 'stand' : 'run',
+						tilt: k(t, [[0.5, 0], [0.6, -9], [0.76, 0]]),
+						neck,
+						head: neck * 0.48,
+						beak: k(t, [[0.7, 0], [0.8, 34], [0.85, 0], [0.96, 34], [1.07, 0], [1.18, 34], [1.29, 0]]),
+						squash: k(t, [[1.42, 1], [1.5, 0.93], [1.62, 1.04], [1.74, 1]]),
+						bulge: (t - 1.42) / 0.35,
+						eye: t >= 1.29 && t < 1.8 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						puff: t > 0.56 && t < 0.96 ? { x: gx + 54, y: 146, s: lerp(0.8, 1.9, skid), o: 1 - skid } : null,
+						crust:
+							t < land
+								? arc(t, 0.06, land, HAND, { x: x0, y: 143 }, 36)
+								: n < 3
+									? { x: x0 - V * (t - land), y: 143, s: [1, 0.72, 0.44][n] }
+									: null,
+						crumbs: n ? spray(t, pecks[n - 1], { x: gx + 107, y: 142 }, 4) : [],
+						say: eatSay(t >= 1.29),
+					}
+				},
+			},
+			bonk: {
+				name: 'Bonk',
+				dur: 1.8,
+				poster: 0.36,
+				what: 'The crust bounces off its forehead. It freezes, then catches the rebound.',
+				cost: 'The most “fend off” of the three, and the one most likely to read as mean to the goose.',
+				frame(t) {
+					const hit = 0.3
+					const snapAt = 0.86
+					const go = 1.3
+					const gx = t < hit ? g0 : t < go ? g0 - V * (t - hit) : k(t, [[go, g0 - V * (go - hit)], [1.8, g1]], E.out)
+					const brow = { x: g0 + 108, y: GOOSE_Y + 14 }
+					const up = mouth({ gx: g0 - V * (snapAt - hit), neck: -16, head: -42 })
+					return {
+						phase: t * 14,
+						scroll: t * V,
+						gx,
+						legs: t >= hit && t < go ? 'stand' : 'run',
+						tilt: k(t, [[hit, 0], [0.38, -12], [0.62, 0]]),
+						neck: k(t, [[hit, 0], [0.36, -28], [0.6, -12], [snapAt, -16], [0.97, 5], [1.15, 0]]),
+						head: k(t, [[hit, 0], [0.36, -22], [0.6, -34], [snapAt, -42], [0.97, 10], [1.15, 0]]),
+						beak: k(t, [[0.55, 0], [0.74, 50], [snapAt - 0.01, 50], [snapAt + 0.04, 0]]),
+						squash: k(t, [[snapAt, 1], [0.93, 0.92], [1.05, 1.04], [1.15, 1]]),
+						bulge: (t - 0.95) / 0.35,
+						eye: t < hit ? 'angry' : t < snapAt ? 'wide' : t < 1.4 ? 'happy' : 'angry',
+						yarms: t < 0.14 ? 'up' : 'run',
+						crust: t < hit ? arc(t, 0.05, hit, HAND, brow, 8, 360) : t < snapAt ? arc(t, hit, snapAt, brow, up, 44, 900) : null,
+						crumbs: spray(t, snapAt, up, 3),
+						burst:
+							t >= hit && t < 0.75
+								? { text: 'bonk', x: brow.x + 18, y: brow.y - 20, size: 15, r: -8, s: pop(t, hit), o: 1 - seg(t, 0.6, 0.75) }
+								: null,
+						say: eatSay(t >= snapAt),
+					}
+				},
+			},
+			feast: {
+				name: 'Feast',
+				dur: 3.6,
+				poster: 1.6,
+				what: 'Three bites, a full belly, and it falls asleep where it stands.',
+				cost: 'The longest clip, so it needs tap to skip.',
+				frame(t) {
+					const m = halt(t, 0.3, 0.9)
+					const land = 0.45
+					const lx = g0 + 128 - Math.max(0, m.scroll - halt(land, 0.3, 0.9).scroll)
+					const bites = [1.2, 1.55, 1.9]
+					const n = bites.filter((b) => t >= b).length
+					const gx = k(t, [[land, g0], [0.9, g0 - 10]]) + k(t, [[1.2, 0], [1.4, 11], [1.55, 11], [1.75, 22]])
+					const neck = k(t, [[0.5, 0], [0.62, -12], [0.95, -12], [1.2, 52], [1.34, 26], [1.55, 52], [1.69, 26], [1.9, 52], [2.15, 0], [2.6, 0], [3, -4]])
+					const sit = seg(t, 2.5, 2.8, E.in)
+					return {
+						...m,
+						gx,
+						gy: -7 * pulse(t, 0.5, 0.72) + 13 * sit,
+						legs: t < 0.55 ? 'run' : sit > 0.6 ? 'sit' : 'stand',
+						neck,
+						head: (neck > 0 ? neck * 0.42 : neck * 0.6) + 14 * seg(t, 2.8, 3.1),
+						beak: k(t, [[1.05, 0], [1.14, 40], [1.2, 0], [1.4, 40], [1.55, 0], [1.75, 40], [1.9, 0]]),
+						belly: k(t, [[1.2, 1], [1.3, 1.07], [1.55, 1.07], [1.65, 1.14], [1.9, 1.14], [2, 1.2]]),
+						squash: k(t, [[2.78, 1], [2.86, 0.9], [3, 1]]),
+						bulge: (t - 2.12) / 0.3,
+						eye: t < 0.5 ? 'angry' : t < 1.05 ? 'wide' : t < 2.9 ? 'happy' : 'shut',
+						loaf:
+							t < land
+								? arc(t, 0.06, land, HAND, { x: g0 + 128, y: 137 }, 42, 360)
+								: n < 3
+									? { x: lx, y: 137, eaten: n / 3 }
+									: null,
+						crumbs: n ? spray(t, bites[n - 1], { x: gx + 115, y: 140 }, 4) : [],
+						zs: t >= 3 ? { x: gx + 112, y: GOOSE_Y + 26, p: (t - 3) / 1.4 } : null,
+						ylegs: t < 0.9 ? 'run' : 'stand',
+						yarms: t < 0.14 || t >= 2 ? 'up' : 'run',
+						yy: -10 * (pulse(t, 2, 2.3) + pulse(t, 2.4, 2.7)),
+						say: paidSay(t >= 1.9, 'Asleep until dawn. Tomorrow it starts 100 steps back.'),
+					}
+				},
+			},
+			truce: {
+				name: 'Truce',
+				dur: 3,
+				poster: 1.7,
+				what: 'It catches the loaf, turns round, and waddles off the screen, dropping crumbs.',
+				cost: 'Leaves an empty field for the rest of the evening.',
+				frame(t) {
+					const m = halt(t, 0.3, 0.9)
+					const snapAt = 0.45
+					const turn = 1
+					const flip = t < turn ? 1 : -1
+					const gx = k(t, [[snapAt, g0], [0.9, g0 - 8]]) + k(t, [[1.15, 0], [3, -(g0 - 8) - 150]], E.in)
+					const phase = t < 1.15 ? m.phase : (t - 1.15) * 10
+					const legs = t < 0.55 || t >= 1.15 ? 'run' : 'stand'
+					const pose = { gx, flip, neck: k(t, [[0.15, 0], [0.4, -10], [0.7, -6]]), head: k(t, [[0.15, 0], [0.4, -14], [0.7, -6]]) }
+					const held = mouth(pose, 23)
+					const trail = [g0 + 62, g0 + 22, g0 - 24, g0 - 70].filter((x) => t > turn && held.x < x)
+					return {
+						...m,
+						...pose,
+						phase,
+						legs,
+						beak: k(t, [[0.2, 0], [0.4, 46], [snapAt, 46], [0.52, 30]]),
+						squash: k(t, [[0.9, 1], [turn, 0.84], [1.1, 1]]),
+						eye: t >= snapAt ? 'happy' : 'angry',
+						loaf:
+							t < snapAt
+								? arc(t, 0.06, snapAt, HAND, mouth({ gx: g0, neck: -10, head: -14 }, 23), 38, 360)
+								: { x: held.x, y: held.y + (legs === 'run' ? bobAt(phase) : 0), r: flip * (pose.neck + pose.head), s: 0.9 },
+						crumbs: trail.map((x) => ({ x, y: 148 })),
+						ylegs: t < 0.9 ? 'run' : 'stand',
+						yarms: t < 0.14 || t >= 1.3 ? 'up' : 'run',
+						yrot: t >= 1.3 ? 5 * Math.sin((t - 1.3) * 9) * (1 - seg(t, 2.6, 3)) : 0,
+						say: paidSay(t >= snapAt + 0.15, 'It took the loaf and left. Back at dawn, 100 steps behind.'),
+					}
+				},
+			},
+			walk: {
+				name: 'Walk',
+				dur: 3.2,
+				poster: 2.3,
+				what: 'It catches the loaf, then trots up and walks beside you with it.',
+				cost: 'On a small widget, a goose next to you looks like a goose that caught you.',
+				frame(t) {
+					const m = halt(t, 0.5, 1.4, 0.4)
+					const snapAt = 0.45
+					const gx = k(t, [[0.7, g0], [1.9, 98]])
+					const pose = { gx, neck: k(t, [[0.15, 0], [0.4, -10], [0.7, -6], [2, -6], [2.3, 4], [2.7, -4]]), head: k(t, [[0.15, 0], [0.4, -14], [0.7, -6], [2, -6], [2.3, 8], [2.7, -4]]) }
+					const held = mouth(pose, 23)
+					return {
+						...m,
+						...pose,
+						beak: k(t, [[0.2, 0], [0.4, 46], [snapAt, 46], [0.52, 30]]),
+						wing: -30 * (pulse(t, 2.05, 2.3) + pulse(t, 2.35, 2.6)),
+						eye: t >= snapAt ? 'happy' : 'angry',
+						loaf:
+							t < snapAt
+								? arc(t, 0.06, snapAt, HAND, mouth({ gx: g0, neck: -10, head: -14 }, 23), 38, 360)
+								: { x: held.x, y: held.y + bobAt(m.phase), r: pose.neck + pose.head, s: 0.9 },
+						yarms: t < 0.14 ? 'up' : 'run',
+						say: paidSay(t >= snapAt + 0.15, 'It walks you home. Tomorrow it starts 100 steps back.'),
+					}
+				},
+			},
+			peck: {
+				name: 'Peck',
+				dur: 2.4,
+				poster: 0.72,
+				what: 'A lunge, one peck, and you land on your backside while it honks over you.',
+				cost: 'Slapstick at your expense, which may sting on a bad day.',
+				frame(t) {
+					const hit = 0.55
+					const dt = t - hit
+					return {
+						sky: NIGHT,
+						...halt(t, hit - 0.05, hit + 0.1),
+						gx: k(t, [[0, gc], [0.5, 119]], E.in),
+						legs: t < hit ? 'run' : 'stand',
+						neck: k(t, [[0.2, 0], [0.44, -14], [hit, 30], [0.85, 30], [1.1, -8]]),
+						head: k(t, [[0.2, 0], [0.44, -10], [hit, 24], [0.85, 24], [1.1, -4]]),
+						beak: k(t, [[0.3, 0], [0.44, 34], [hit, 0]]) + 36 * (pulse(t, 1.2, 1.5) + pulse(t, 1.65, 1.95)),
+						wing: -48 * (pulse(t, 1.15, 1.4) + pulse(t, 1.4, 1.65) + pulse(t, 1.65, 1.9)),
+						shake: dt >= 0 ? 5 * Math.sin(dt * 55) * Math.exp(-dt * 7) : 0,
+						burst: dt >= 0 && t < 2 ? { text: 'HONK!', x: 168, y: 54, size: 28, r: -7, s: pop(t, hit), o: 1 - seg(t, 1.7, 2) } : null,
+						yx: k(t, [[hit, 0], [1.05, 20]], E.out),
+						yy: -30 * pulse(t, hit, 1.05) + 13 * seg(t, hit, 1.05, E.in) - 4 * pulse(t, 1.05, 1.25),
+						yrot: k(t, [[hit, 0], [0.8, 30], [1.05, 0]]),
+						ylegs: t < hit ? 'run' : t < 0.95 ? 'stand' : 'sit',
+						yarms: t >= hit ? 'up' : 'run',
+						say: caughtSay(t >= hit),
+					}
+				},
+			},
+			scuffle: {
+				name: 'Scuffle',
+				dur: 2.6,
+				poster: 1,
+				what: 'A dust cloud swallows you both. When it clears, the goose is standing over you.',
+				cost: 'Hides the catch itself, and needs the most art to look good.',
+				frame(t) {
+					const meet = 0.45
+					const clear = 1.5
+					const hidden = t >= 1
+					const words = [[0.62, 'HONK!', 196, 60, 24], [0.95, 'ow', 292, 74, 17], [1.25, 'HONK!', 262, 48, 22]]
+					const w = words.filter((x) => t >= x[0]).at(-1)
+					return {
+						sky: NIGHT,
+						...halt(t, meet - 0.05, meet + 0.1),
+						gx: hidden ? 108 : k(t, [[0, gc], [meet, 118]], E.in),
+						legs: t < meet ? 'run' : 'stand',
+						tilt: t >= meet && t < clear ? 7 * Math.sin(t * 30) : 0,
+						neck: hidden ? -14 : 0,
+						head: hidden ? -8 : 0,
+						wing: hidden ? -50 * seg(t, 1.6, 1.85) : 0,
+						beak: 38 * pulse(t, 1.95, 2.35),
+						shake: t >= meet && t < clear ? 3 * Math.sin(t * 52) : 0,
+						puff:
+							t >= meet && t < 1.8
+								? { x: 242, y: 116, s: k(t, [[meet, 0.6], [0.62, 4], [clear, 4], [1.8, 5]], E.out) * (1 + 0.05 * Math.sin(t * 38)), r: 10 * Math.sin(t * 16), o: 1 - seg(t, clear, 1.8) }
+								: null,
+						burst:
+							w && t < clear + 0.1
+								? { text: w[1], x: w[2], y: w[3], size: w[4], r: w[1] === 'ow' ? 8 : -8, s: pop(t, w[0]) }
+								: t >= 1.95
+									? { text: 'honk', x: 186, y: 56, size: 18, r: -6, s: pop(t, 1.95), o: 1 - seg(t, 2.35, 2.6) }
+									: null,
+						crumbs: [...spray(t, 0.7, { x: 236, y: 98 }, 3, 190, 150), ...spray(t, 1.1, { x: 250, y: 96 }, 3, 210, 130)],
+						yx: hidden ? 16 : 0,
+						yy: hidden ? 13 : 0,
+						yrot: hidden ? 6 * Math.sin(t * 10) * (1 - seg(t, 1.8, 2.6)) : 0,
+						ylegs: t < meet ? 'run' : hidden ? 'sit' : 'stand',
+						say: caughtSay(t >= clear),
+					}
+				},
+			},
+			stare: {
+				name: 'Stare',
+				dur: 2.8,
+				poster: 1.5,
+				what: 'It stops beside you and stares for a full second. Then one honk.',
+				cost: 'The pause is the joke, so it cannot be shortened or skipped.',
+				frame(t) {
+					const honk = 1.9
+					const dt = t - honk
+					return {
+						sky: NIGHT,
+						...halt(t, 0.2, 0.7),
+						gx: k(t, [[0, gc], [0.7, 108]], E.out),
+						legs: t < 0.7 ? 'run' : 'stand',
+						neck: k(t, [[0.7, 0], [1, 20], [honk - 0.12, 20], [honk - 0.04, 10], [honk, 22], [2.4, 22], [2.7, 0]]),
+						head: k(t, [[0.7, 0], [1, 18], [2.4, 18], [2.7, 0]]),
+						beak: 52 * pulse(t, honk - 0.03, honk + 0.45),
+						eye: t < 0.9 ? 'angry' : t < honk ? 'wide' : t < 2.35 ? 'angry' : 'happy',
+						shake: dt >= 0 ? 6 * Math.sin(dt * 55) * Math.exp(-dt * 6) : 0,
+						burst: dt >= 0 && t < 2.7 ? { text: 'HONK!', x: 172, y: 50, size: 32, r: -6, s: pop(t, honk), o: 1 - seg(t, 2.4, 2.7) } : null,
+						yx: (t > 1.1 && t < honk ? 0.8 * Math.sin(t * 60) : 0) + 18 * seg(t, honk, honk + 0.3, E.out),
+						yy: -18 * pulse(t, honk, honk + 0.3) + 13 * seg(t, honk + 0.15, honk + 0.3, E.in),
+						yrot: k(t, [[honk, 0], [honk + 0.15, 20], [honk + 0.3, 0]]),
+						ylegs: t < 0.7 ? 'run' : t < honk + 0.25 ? 'stand' : 'sit',
+						yarms: dt >= 0 ? 'up' : 'run',
+						say: caughtSay(dt >= 0),
+					}
+				},
+			},
+		}
+		const MOMENTS = [
+			{ id: 'eat', name: 'A crust lands', when: 'on every log', clips: ['snap', 'forage', 'bonk'] },
+			{ id: 'paid', name: 'The goose is fed', when: 'once a day, on the last log', clips: ['feast', 'truce', 'walk'] },
+			{ id: 'caught', name: 'The goose catches you', when: 'on a missed day', clips: ['peck', 'scuffle', 'stare'] },
+		]
+
+		const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+		const state = { stage: 'eat', pick: { eat: 'snap', paid: 'feast', caught: 'peck' }, t: 0, playing: false, speed: 1 }
+		el('scene').innerHTML = sceneSvg('The goose chasing you')
+		const svg = el('scene').firstElementChild
+		const clip = () => CLIPS[state.pick[state.stage]]
+
+		el('groups').innerHTML = MOMENTS.map(
+			(m) => `<div class="ui-stack" style="--gap: 6px">
+				<p class="moment"><span>${m.name}</span><span class="ui-label">${m.when}</span><span class="ui-chip" data-on="${m.id}">On stage</span></p>
+				<div class="ui-seg" data-moment="${m.id}" aria-label="${m.name}">${m.clips
+					.map((c) => `<button data-value="${c}" aria-selected="${state.pick[m.id] === c}">${CLIPS[c].name}</button>`)
+					.join('')}</div>
+				<p class="what" data-what="${m.id}"></p>
+				<p class="what ui-label" data-cost="${m.id}"></p>
+			</div>`,
+		).join('')
+
+		let said = ''
+		function show() {
+			const c = clip()
+			const pose = c.frame(state.t)
+			draw(svg, pose)
+			const head = el('head')
+			if (pose.say.head !== said) {
+				head.textContent = said = pose.say.head
+				head.className = `head ${pose.say.tone ?? ''}`
+				if (state.playing) {
+					void head.offsetWidth
+					head.classList.add('pop')
+				}
+			}
+			el('sub').textContent = pose.say.sub
+			el('scrub').max = c.dur
+			el('scrub').value = state.t
+			el('clock').textContent = `${state.t.toFixed(2)} of ${c.dur.toFixed(1)} s`
+		}
+		function render() {
+			const name = (id) => CLIPS[state.pick[id]].name
+			el('title').textContent = `Nine goose animations for three moments. Current set: ${name('eat')} for a crust, ${name('paid')} when the goose is fed, ${name('caught')} when it catches you`
+			for (const m of MOMENTS) {
+				const c = CLIPS[state.pick[m.id]]
+				document.querySelector(`[data-on=${m.id}]`).hidden = state.stage !== m.id
+				document.querySelector(`[data-what=${m.id}]`).textContent = `${c.what} ${c.dur.toFixed(1)} s.`
+				document.querySelector(`[data-cost=${m.id}]`).textContent = c.cost
+			}
+			show()
+		}
+		let last = 0
+		function tick(now) {
+			if (!state.playing) return
+			state.t += ((now - last) / 1000) * state.speed
+			last = now
+			if (state.t >= clip().dur) {
+				state.t = clip().dur
+				state.playing = false
+			}
+			show()
+			if (state.playing) requestAnimationFrame(tick)
+		}
+		function play() {
+			if (still) {
+				state.playing = false
+				state.t = clip().dur
+				return render()
+			}
+			const running = state.playing
+			state.t = 0
+			state.playing = true
+			last = performance.now()
+			render()
+			if (!running) requestAnimationFrame(tick)
+		}
+		for (const box of document.querySelectorAll('[data-moment]')) {
+			const id = box.dataset.moment
+			box.addEventListener('change', (e) => {
+				state.stage = id
+				state.pick[id] = e.detail.value
+				play()
+			})
+			// A click on the option that is already picked replays it.
+			box.addEventListener('click', (e) => {
+				const b = e.target.closest('button')
+				if (b && b.dataset.value === state.pick[id]) {
+					state.stage = id
+					play()
+				}
+			})
+		}
+		el('replay').addEventListener('click', play)
+		el('speed').addEventListener('change', (e) => (state.speed = +e.detail.value))
+		el('scrub').addEventListener('input', (e) => {
+			state.playing = false
+			state.t = +e.target.value
+			show()
+		})
+		state.t = clip().poster
+		render()
+	}
+</script>

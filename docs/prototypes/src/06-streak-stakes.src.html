@@ -1,0 +1,311 @@
+<div class="ui-header">
+	<p class="ui-title" id="title" style="text-wrap: balance"></p>
+	<p class="ui-sub" style="max-width: 68ch; text-wrap: pretty">
+		Three things that could rise with each day you feed the goose in full. Drag the streak to see
+		each one at any day. It opens on the one I would ship first. Days, sizes and prices are
+		examples to tune.
+	</p>
+</div>
+<div class="ui-stack" style="--gap: 8px; margin-bottom: 12px">
+	<div class="ui-row" style="flex-wrap: wrap; gap: 8px 16px">
+		<div class="ui-seg" id="dir" aria-label="What rises with the streak">
+			<button data-value="grow" aria-selected="true">Grows</button>
+			<button data-value="fast">Speeds up</button>
+			<button data-value="nest">Nest</button>
+		</div>
+		<label class="ui-row" style="flex: 1; min-width: 220px; max-width: 340px">
+			<span class="ui-label">Streak</span>
+			<input class="ui-range" id="streak" type="range" min="0" max="30" step="1" value="12" style="flex: 1; min-width: 0" />
+			<span class="ui-label ui-num" id="streakLabel" style="width: 52px; text-align: right; white-space: nowrap"></span>
+		</label>
+	</div>
+	<p class="ui-label" id="cost" style="margin: 0; max-width: 68ch; text-wrap: pretty"></p>
+</div>
+<div class="ptm-layout">
+	<div class="stage">
+		<div class="scene">
+			<div id="scene"></div>
+			<div class="badge" id="badge"></div>
+		</div>
+		<div class="readout">
+			<div class="head" id="head"></div>
+			<div class="sub" id="sub"></div>
+			<div class="eggs" id="eggs"></div>
+		</div>
+	</div>
+	<div class="ui-stack" id="side" style="--gap: 16px; align-content: start"></div>
+</div>
+<style>
+	@font-face {
+		font-family: 'PTM Shrik';
+		src: url(data:font/woff2;base64,{{FONT_SHRIK}}) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+		align-items: start;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	.stage {
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+		background: #fffaf0;
+		color: #1d1a2f;
+		font-family: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.25;
+	}
+	.stage .scene {
+		position: relative;
+	}
+	.stage svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-bottom: 3px solid #1d1a2f;
+	}
+	.stage .badge {
+		position: absolute;
+		top: 10px;
+		right: 12px;
+		padding: 3px 10px;
+		border-radius: 14px;
+		border: 2.5px solid #1d1a2f;
+		background: #e8ae4c;
+		font-weight: 700;
+		font-size: 13px;
+		font-variant-numeric: tabular-nums;
+	}
+	.stage .readout {
+		box-sizing: border-box;
+		padding: 12px 16px 14px;
+		min-height: 122px;
+	}
+	.stage .head {
+		font-family: 'PTM Shrik', 'Cooper Black', Georgia, serif;
+		font-size: 24px;
+		line-height: 1.1;
+	}
+	.stage .sub {
+		margin-top: 4px;
+	}
+	.stage .eggs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px;
+		margin-top: 8px;
+	}
+	.stage .eggs:empty {
+		display: none;
+	}
+	.stage .eggs i {
+		box-sizing: border-box;
+		width: 12px;
+		height: 15px;
+		border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+		border: 2px solid #1d1a2f;
+		background: #ffd23f;
+	}
+	#side p {
+		margin: 0;
+		max-width: 46ch;
+		text-wrap: pretty;
+	}
+	#side tr.off td {
+		color: var(--muted-foreground);
+	}
+	.daybar {
+		position: relative;
+		height: 10px;
+		margin-top: 26px;
+		border-radius: 5px;
+		box-shadow: inset 0 0 0 1px var(--border);
+	}
+	.daybar .safe {
+		position: absolute;
+		inset: 0 auto 0 0;
+		border-radius: 5px 0 0 5px;
+		background: var(--chart-context, #c8c8cc);
+	}
+	.daybar .mark {
+		position: absolute;
+		top: -5px;
+		bottom: -5px;
+		width: 2px;
+		margin-left: -1px;
+		background: var(--chart-1, #2563eb);
+	}
+	.daybar .lbl {
+		position: absolute;
+		bottom: 18px;
+		transform: translateX(-100%);
+		white-space: nowrap;
+		font-size: 11px;
+	}
+	.ticks {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 6px;
+	}
+</style>
+<script>
+	{
+{{INCLUDE:rig.js}}
+		const el = (id) => document.getElementById(id)
+		const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+		const an = (word) => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word}`
+		const cap = (s) => s[0].toUpperCase() + s.slice(1)
+
+		// Grows: the goose's size at each rank, as a share of the full-grown art. It grows a little every day between ranks.
+		const RANKS = [
+			{ from: 0, name: 'gosling', size: 0.5 },
+			{ from: 3, name: 'goose', size: 0.75 },
+			{ from: 7, name: 'big goose', size: 1 },
+			{ from: 14, name: 'boss goose', size: 1.3 },
+			{ from: 30, name: 'giant goose', size: 1.7 },
+		]
+		const rankAt = (n) => RANKS.findLast((r) => n >= r.from)
+		const sizeAt = (n) => {
+			const i = RANKS.findLastIndex((r) => n >= r.from)
+			const next = RANKS[i + 1]
+			return next ? lerp(RANKS[i].size, next.size, (n - RANKS[i].from) / (next.from - RANKS[i].from)) : RANKS[i].size
+		}
+		const times = (size) => `${(size / RANKS[0].size).toFixed(1)}×`
+		// Speeds up: each fed day pulls the catch time for an unfed day half an hour earlier, down to 6 pm.
+		const PULL = 0.5
+		const PULL_DAYS = 12
+		const catchAt = (n) => MIDNIGHT - PULL * Math.min(n, PULL_DAYS)
+		const span = (h) => (h < 1 ? `${h * 60} minutes` : plural(h, 'hour'))
+		// Nest: one egg per fed day (none spent in this example), five for a rest day, half lost when caught.
+		const REST_COST = 5
+		const lost = (eggs) => Math.ceil(eggs / 2)
+
+		const DIRS = {
+			grow: {
+				rule: 'Every day you feed the goose in full, it grows a little. It passes five ranks on the way, and its rank shows in the chase, on the widget and on your public profile. The rules of the day stay the same.',
+				cost: 'Costs no new rules. The risk is that it is only cosmetic: the pull is not wanting to lose a goose you grew.',
+				third: 'Goose',
+			},
+			fast: {
+				rule: `Every day you feed the goose in full, it runs faster the next day. A day you feed it nothing ends ${span(PULL)} earlier per day of streak, down to ${clock(catchAt(PULL_DAYS))} after ${PULL_DAYS} days. A crust still buys the same steps.`,
+				cost: 'The only one that makes the day itself harder. It is hardest on your best runs, and one late shift can end them, which is why it stops at 6 pm.',
+				third: 'Unfed day ends',
+			},
+			nest: {
+				rule: `Every day you feed the goose in full, it lays a golden egg. ${cap(plural(REST_COST, 'egg'))} buy a rest day that keeps the streak. If the goose catches you, it takes back half the nest.`,
+				cost: 'Gives you something to spend, a rest day that keeps the streak. It also adds a currency to explain and balance.',
+				third: 'Eggs',
+			},
+		}
+		const state = { dir: 'grow', n: 12 }
+		el('scene').innerHTML = sceneSvg('The goose chasing you')
+		const svg = el('scene').firstElementChild
+		const extra = svg.querySelector('[data-p=extra]')
+
+		const stake = (n) => ({ grow: `${cap(rankAt(n).name)}, ${times(sizeAt(n))}`, fast: clock(catchAt(n)), nest: `${n}` })[state.dir]
+		function title(n) {
+			if (state.dir === 'grow')
+				return n
+					? `Grows: at a ${n}-day streak ${an(rankAt(n).name)} is chasing you at ${times(sizeAt(n)).replace('×', '')} times its starting size, and it starts over as a gosling when it catches you`
+					: 'Grows: every streak starts with a gosling, and it gets bigger each day you feed it in full'
+			if (state.dir === 'fast')
+				return n
+					? `Speeds up: at a ${n}-day streak a day you feed the goose nothing ends at ${clock(catchAt(n))}, ${span(MIDNIGHT - catchAt(n))} earlier than with no streak`
+					: `Speeds up: with no streak an unfed day ends at midnight, and each fed day pulls that ${span(PULL)} earlier`
+			return n
+				? `Nest: at a ${n}-day streak you hold ${plural(n, 'golden egg')}, and the goose takes ${lost(n)} back if it catches you`
+				: 'Nest: each day you feed the goose in full it lays one golden egg, and it takes half back when it catches you'
+		}
+		function readout(n) {
+			if (state.dir === 'grow') {
+				const next = RANKS.find((r) => r.from > n)
+				return {
+					head: `${cap(an(rankAt(n).name))} is after you`,
+					sub: `${next ? `${plural(next.from - n, 'more fed day')} and it is ${an(next.name)}.` : 'It is as big as it gets.'}${n ? ' If it catches you, it is a gosling again.' : ''}`,
+				}
+			}
+			if (state.dir === 'fast')
+				return {
+					head: `It gets you by ${clock(catchAt(n))}`,
+					sub: `That is if you feed it nothing today. ${n < PULL_DAYS ? `Each fed day pulls it ${span(PULL)} earlier.` : 'It never comes earlier than this.'}`,
+				}
+			return {
+				head: n ? `${cap(plural(n, 'golden egg'))} in the nest` : 'No golden eggs yet',
+				sub: `${n >= REST_COST ? `${cap(plural(REST_COST, 'egg'))} buy a rest day.` : `${plural(REST_COST - n, 'more egg')} and you can buy a rest day.`}${n ? ` If the goose catches you, it takes ${lost(n)} back.` : ''}`,
+			}
+		}
+		function scene(n) {
+			const z = state.dir === 'grow' ? sizeAt(n) : 1
+			// Keep the beak tip 35 units behind you at every size.
+			const gx = YOU_X - 35 - 52 - 71 * z
+			const bob = -2.5 * Math.abs(Math.sin(0.9))
+			let marks = ''
+			if (state.dir === 'grow' && rankAt(n).from >= 14)
+				marks = `<path transform="translate(${(gx + 52 + 48 * z).toFixed(1)} ${(GOOSE_Y + 91 + bob - 77 * z).toFixed(1)}) scale(${z}) rotate(6)" d="M-8 0 L-9 -10 L-3 -5 L1 -12 L5 -5 L11 -10 L10 0 Z" fill="#ffd23f" stroke="${INKC}" stroke-width="2.5" stroke-linejoin="round"/>`
+			if (state.dir === 'fast')
+				marks = Array.from({ length: Math.ceil(Math.min(n, PULL_DAYS) / 3) }, (_, i) => `<path d="M${(gx - 4 - 5 * (i % 2)).toFixed(1)} ${96 + 10 * i} h${-18 - 6 * (i % 2)}" stroke="${INKC}" stroke-width="3" stroke-linecap="round"/>`).join('')
+			extra.innerHTML = marks
+			draw(svg, {
+				phase: 0.9,
+				gx,
+				size: z,
+				tilt: state.dir === 'fast' ? Math.min(n, PULL_DAYS) * 0.5 : 0,
+				tint: state.dir === 'grow' && rankAt(n).from === 0 ? '#ffe27a' : WHITE,
+			})
+		}
+		function side(n) {
+			const rows = [
+				['Fed in full', n + 1, stake(n + 1)],
+				['Short', n, stake(n)],
+				['Caught', 0, state.dir === 'nest' ? `${n - lost(n)}` : stake(0)],
+			]
+			if (state.dir === 'nest' && n >= REST_COST) rows.splice(2, 0, [`Rest day, ${plural(REST_COST, 'egg')}`, n, `${n - REST_COST}`])
+			const pct = ((catchAt(n) - DAWN) / (MIDNIGHT - DAWN)) * 100
+			const graphic = {
+				grow: `<table class="ui-table"><thead><tr><th>Rank</th><th class="num">From day</th><th class="num">Size</th></tr></thead><tbody>${RANKS.map(
+					(r) => `<tr class="${r === rankAt(n) ? '' : 'off'}"><td>${cap(r.name)}</td><td class="num">${r.from}</td><td class="num">${times(r.size)}</td></tr>`,
+				).join('')}</tbody></table>`,
+				fast: `<div><div class="daybar" role="img" aria-label="An unfed day ends at ${clock(catchAt(n))}">
+					<div class="safe" style="width: ${pct.toFixed(1)}%"></div><div class="mark" style="left: ${pct.toFixed(1)}%"></div>
+					<div class="lbl" style="left: ${pct.toFixed(1)}%">Unfed, it catches you at ${clock(catchAt(n))}</div>
+				</div><div class="ticks ui-caption"><span>6 am</span><span>noon</span><span>6 pm</span><span>midnight</span></div></div>`,
+				nest: '',
+			}[state.dir]
+			return `<p>${DIRS[state.dir].rule}</p>${graphic}
+				<div class="ui-stack" style="--gap: 4px"><p class="ui-label">After tonight, starting from ${n ? `a ${n}-day streak` : 'no streak'}</p>
+				<table class="ui-table"><thead><tr><th>Tonight ends</th><th class="num">Streak</th><th class="num">${DIRS[state.dir].third}</th></tr></thead><tbody>${rows
+					.map((r) => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`)
+					.join('')}</tbody></table></div>
+				<p class="ui-caption">A short day (some fed, not caught) keeps the streak where it is. The goose already starts the next day closer by what you left unfed, so a run of short days still ends in a catch.</p>`
+		}
+		function render() {
+			const n = state.n
+			const r = readout(n)
+			el('title').textContent = title(n)
+			el('cost').textContent = DIRS[state.dir].cost
+			el('streakLabel').textContent = plural(n, 'day')
+			el('badge').textContent = n ? `${n}-day streak` : 'No streak yet'
+			el('head').textContent = r.head
+			el('sub').textContent = r.sub
+			el('eggs').innerHTML = state.dir === 'nest' ? '<i></i>'.repeat(n) : ''
+			el('side').innerHTML = side(n)
+			scene(n)
+		}
+		el('dir').addEventListener('change', (e) => {
+			state.dir = e.detail.value
+			render()
+		})
+		el('streak').addEventListener('input', (e) => {
+			state.n = +e.target.value
+			render()
+		})
+		render()
+	}
+</script>

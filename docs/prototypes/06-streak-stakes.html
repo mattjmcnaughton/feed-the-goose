@@ -1,0 +1,570 @@
+<!doctype html>
+<!-- Built by docs/prototypes/build.py. Edit the .src.html file in src/, not this file. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feed the Goose prototype: streak stakes</title>
+<style>
+/* A small stand-in for Amp's view kit (colour tokens and ui-* classes), so the prototype opens in any browser. */
+:root{--background:#fff;--foreground:#18181b;--muted-foreground:#71717a;--border:#e4e4e7;--card:#fafafa;--muted:#f0f0f1;--link:#2563eb;--chart-1:#2563eb;--chart-context:#c8c8cc;--radius:8px;--font-sans:system-ui,sans-serif;--font-mono:ui-monospace,monospace}
+html.dark{--background:#111113;--foreground:#ededef;--muted-foreground:#9a9aa3;--border:#2c2c31;--card:#18181b;--muted:#1f1f23;--chart-context:#4a4a52}
+body{margin:0 auto;padding:16px;max-width:760px;box-sizing:border-box;background:var(--background);color:var(--foreground);font:13px/20px var(--font-sans)}
+p{margin:0}
+[hidden]{display:none!important}
+.ui-header{margin-bottom:16px}.ui-title{font-weight:500}.ui-sub,.ui-label{font-size:12px;color:var(--muted-foreground)}
+.ui-muted{color:var(--muted-foreground)}.ui-caption{font-size:11px;color:var(--muted-foreground)}
+.ui-num{font-variant-numeric:tabular-nums}
+.ui-stack{display:grid;gap:var(--gap,12px)}.ui-row{display:flex;align-items:center;gap:8px}
+.ui-seg{display:inline-flex;background:var(--muted);border-radius:8px;padding:2px;width:fit-content}
+.ui-seg button{all:unset;padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted-foreground);white-space:nowrap}
+.ui-seg button[aria-selected=true]{background:var(--background);color:var(--foreground);box-shadow:0 0 0 1px var(--border)}
+.ui-seg button:focus-visible,.ui-btn:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.ui-btn{all:unset;padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--muted)}
+.ui-chip{font-size:11px;padding:0 6px;border-radius:9px;box-shadow:0 0 0 1px var(--border);color:var(--muted-foreground)}
+.ui-table{border-collapse:collapse;width:100%;font-size:12px}.ui-table th{font-weight:400;color:var(--muted-foreground);text-align:left}
+.ui-table th,.ui-table td{padding:4px 8px 4px 0;border-bottom:1px solid var(--border)}.ui-table .num{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+<script>
+window.ui={icon:()=>''}
+document.addEventListener('click',e=>{const b=e.target.closest('.ui-seg button');if(!b)return
+ const seg=b.parentElement;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b))
+ seg.dispatchEvent(new CustomEvent('change',{detail:{value:b.dataset.value}}))})
+if(location.hash==='#dark')document.documentElement.classList.add('dark')
+</script>
+<body>
+<div class="ui-header">
+	<p class="ui-title" id="title" style="text-wrap: balance"></p>
+	<p class="ui-sub" style="max-width: 68ch; text-wrap: pretty">
+		Three things that could rise with each day you feed the goose in full. Drag the streak to see
+		each one at any day. It opens on the one I would ship first. Days, sizes and prices are
+		examples to tune.
+	</p>
+</div>
+<div class="ui-stack" style="--gap: 8px; margin-bottom: 12px">
+	<div class="ui-row" style="flex-wrap: wrap; gap: 8px 16px">
+		<div class="ui-seg" id="dir" aria-label="What rises with the streak">
+			<button data-value="grow" aria-selected="true">Grows</button>
+			<button data-value="fast">Speeds up</button>
+			<button data-value="nest">Nest</button>
+		</div>
+		<label class="ui-row" style="flex: 1; min-width: 220px; max-width: 340px">
+			<span class="ui-label">Streak</span>
+			<input class="ui-range" id="streak" type="range" min="0" max="30" step="1" value="12" style="flex: 1; min-width: 0" />
+			<span class="ui-label ui-num" id="streakLabel" style="width: 52px; text-align: right; white-space: nowrap"></span>
+		</label>
+	</div>
+	<p class="ui-label" id="cost" style="margin: 0; max-width: 68ch; text-wrap: pretty"></p>
+</div>
+<div class="ptm-layout">
+	<div class="stage">
+		<div class="scene">
+			<div id="scene"></div>
+			<div class="badge" id="badge"></div>
+		</div>
+		<div class="readout">
+			<div class="head" id="head"></div>
+			<div class="sub" id="sub"></div>
+			<div class="eggs" id="eggs"></div>
+		</div>
+	</div>
+	<div class="ui-stack" id="side" style="--gap: 16px; align-content: start"></div>
+</div>
+<style>
+	@font-face {
+		font-family: 'PTM Shrik';
+		src: url(data:font/woff2;base64,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) format('woff2');
+	}
+	.ptm-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+		gap: 24px;
+		align-items: start;
+	}
+	@media (max-width: 600px) {
+		.ptm-layout {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 16px;
+		}
+	}
+	.stage {
+		border-radius: 22px;
+		overflow: hidden;
+		box-shadow: 0 0 0 1px var(--border);
+		background: #fffaf0;
+		color: #1d1a2f;
+		font-family: ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.25;
+	}
+	.stage .scene {
+		position: relative;
+	}
+	.stage svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-bottom: 3px solid #1d1a2f;
+	}
+	.stage .badge {
+		position: absolute;
+		top: 10px;
+		right: 12px;
+		padding: 3px 10px;
+		border-radius: 14px;
+		border: 2.5px solid #1d1a2f;
+		background: #e8ae4c;
+		font-weight: 700;
+		font-size: 13px;
+		font-variant-numeric: tabular-nums;
+	}
+	.stage .readout {
+		box-sizing: border-box;
+		padding: 12px 16px 14px;
+		min-height: 122px;
+	}
+	.stage .head {
+		font-family: 'PTM Shrik', 'Cooper Black', Georgia, serif;
+		font-size: 24px;
+		line-height: 1.1;
+	}
+	.stage .sub {
+		margin-top: 4px;
+	}
+	.stage .eggs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px;
+		margin-top: 8px;
+	}
+	.stage .eggs:empty {
+		display: none;
+	}
+	.stage .eggs i {
+		box-sizing: border-box;
+		width: 12px;
+		height: 15px;
+		border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+		border: 2px solid #1d1a2f;
+		background: #ffd23f;
+	}
+	#side p {
+		margin: 0;
+		max-width: 46ch;
+		text-wrap: pretty;
+	}
+	#side tr.off td {
+		color: var(--muted-foreground);
+	}
+	.daybar {
+		position: relative;
+		height: 10px;
+		margin-top: 26px;
+		border-radius: 5px;
+		box-shadow: inset 0 0 0 1px var(--border);
+	}
+	.daybar .safe {
+		position: absolute;
+		inset: 0 auto 0 0;
+		border-radius: 5px 0 0 5px;
+		background: var(--chart-context, #c8c8cc);
+	}
+	.daybar .mark {
+		position: absolute;
+		top: -5px;
+		bottom: -5px;
+		width: 2px;
+		margin-left: -1px;
+		background: var(--chart-1, #2563eb);
+	}
+	.daybar .lbl {
+		position: absolute;
+		bottom: 18px;
+		transform: translateX(-100%);
+		white-space: nowrap;
+		font-size: 11px;
+	}
+	.ticks {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 6px;
+	}
+</style>
+<script>
+	{
+		// Shared by the Pay the Goose views: the scene, the goose and runner rigs, and draw(svg, pose).
+		// Positions are in the scene's 340 x 176 units. Angles are degrees, clockwise.
+		const DAWN = 6
+		const MIDNIGHT = 24
+		const DAY = 100
+		const YOU_X = 231
+		const GOOSE_Y = 55
+		const INKC = '#1d1a2f'
+		const BREAD = '#e8ae4c'
+		const WHITE = '#fffdf7'
+		const PUFF = [[-7, 2, 5], [-1, -5, 6], [6, -3, 5.5], [8, 4, 4.5], [0, 4, 5.5]]
+		const NECK = [[64, 54], [78, 52], [92, 42], [100, 24]]
+		const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+		const lerp = (a, b, p) => a + (b - a) * p
+		// Where the goose stands for a lead: 1 is a full day's head start, 0 is its beak on your back.
+		const G = (lead) => (1 - clamp(lead)) * 116
+		const clock = (h) => {
+			const m = Math.round(h * 60)
+			if (m >= 1440) return 'midnight'
+			if (m === 720) return 'noon'
+			const hh = Math.floor(m / 60)
+			return `${hh % 12 || 12}:${String(m % 60).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'}`
+		}
+		const skyStops = [
+			[6, [255, 214, 165]],
+			[11, [143, 211, 255]],
+			[16, [150, 205, 250]],
+			[18.5, [255, 160, 110]],
+			[20.5, [84, 68, 158]],
+			[24, [38, 33, 92]],
+		]
+		function skyAt(h) {
+			const i = Math.max(1, skyStops.findIndex(([t]) => t >= h))
+			const [t0, a] = skyStops[i - 1]
+			const [t1, b] = skyStops[i]
+			const k = clamp((h - t0) / (t1 - t0))
+			const day = h < 19
+			const p = day ? (h - DAWN) / 13 : (h - 19) / 10
+			return {
+				bg: `rgb(${a.map((v, j) => Math.round(lerp(v, b[j], k))).join(' ')})`,
+				x: 17 + 306 * p,
+				y: 130 - 92 * Math.sin(Math.PI * p),
+				fill: day ? '#ffd23f' : '#fff6d6',
+				stars: clamp((h - 18.5) / 2),
+			}
+		}
+		const neckAt = (s) =>
+			[0, 1].map((i) => (1 - s) ** 3 * NECK[0][i] + 3 * (1 - s) ** 2 * s * NECK[1][i] + 3 * (1 - s) * s ** 2 * NECK[2][i] + s ** 3 * NECK[3][i])
+		let sceneCount = 0
+		function sceneSvg(label) {
+			const clip = `ptm-clip-${sceneCount++}`
+			const ink = `stroke="${INKC}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`
+			const neck = `M${NECK[0]} C${NECK[1]} ${NECK[2]} ${NECK[3]}`
+			const leg = (p, x) =>
+				`<g data-p="${p}"><path d="M${x} 74 V90 H${x + 10}" stroke="${INKC}" stroke-width="7.5"/><path d="M${x} 74 V90 H${x + 10}" stroke="#ff8a1f" stroke-width="3"/></g>`
+			const font = `font-family="'PTM Shrik', 'Cooper Black', Georgia, serif"`
+			return `<svg viewBox="0 0 340 176" role="img" aria-label="${label}">
+				<defs><clipPath id="${clip}"><rect data-p="clip" x="-20" y="-14" width="40" height="28"/></clipPath></defs>
+				<rect data-p="sky" width="340" height="176"/>
+				<g data-p="stars" fill="#fff"><circle cx="41" cy="29" r="1.5"/><circle cx="116" cy="62" r="1.5"/><circle cx="177" cy="22" r="2"/><circle cx="241" cy="56" r="1.5"/><circle cx="306" cy="27" r="1.5"/></g>
+				<circle data-p="orb" r="14.5" stroke="${INKC}" stroke-width="3"/>
+				<g data-p="world">
+					<rect x="-20" y="132" width="380" height="60" fill="#a9d68c"/>
+					<path d="M-20 132 H360" ${ink}/>
+					<path data-p="dashA" d="M-46 146 H386" stroke="${INKC}" stroke-width="3" stroke-dasharray="10 36"/>
+					<path data-p="dashB" d="M-46 160 H386" stroke="${INKC}" stroke-width="3" stroke-dasharray="6 64"/>
+					<g data-p="prop" ${ink}><path d="M176 132 V112 M184 132 V106" fill="none"/><rect x="173.5" y="103" width="5" height="12" rx="2.5" fill="#8a5a2b"/><rect x="181.5" y="97" width="5" height="12" rx="2.5" fill="#8a5a2b"/></g>
+					<g data-p="extra"></g>
+					<g data-p="goose" fill="none" stroke-linecap="round" stroke-linejoin="round">
+						${leg('legA', 46)}${leg('legB', 58)}
+						<g data-p="neckB"><path d="${neck}" stroke="${INKC}" stroke-width="17"/><circle data-p="bulgeB" r="12" fill="${INKC}"/></g>
+						<path data-p="body" data-w="fill" d="M6 40 L26 48 C36 42 52 42 62 46 C74 50 78 62 72 70 C66 78 54 78 44 78 C26 78 12 62 6 40 Z" fill="${WHITE}" ${ink}/>
+						<path data-p="wing" d="M30 54 C38 46 56 46 62 58 C52 66 38 64 30 54 Z" fill="#e6e1f0" ${ink}/>
+						<g data-p="neckF">
+							<path data-w="stroke" d="${neck}" stroke="${WHITE}" stroke-width="11"/>
+							<circle data-p="bulgeF" data-w="fill" r="10.5" fill="${WHITE}"/>
+							<g data-p="head">
+								<path data-p="beakU" d="M107 16 L123 24 L108 27 Z" fill="#ff8a1f" ${ink}/>
+								<path data-p="beakL" d="M107 26 L120 27.5 L105 33 Z" fill="#ff8a1f" ${ink}/>
+								<circle data-w="fill" cx="100" cy="24" r="11" fill="${WHITE}" ${ink}/>
+							</g>
+							<path data-w="stroke" d="M94.5 33.8 L100 24" stroke="${WHITE}" stroke-width="11"/>
+							<g data-p="face" stroke="${INKC}" stroke-width="2.5">
+								<g data-eye="angry"><circle cx="103" cy="21" r="2.6" fill="${INKC}" stroke="none"/><path d="M97 13.5 L107 17"/></g>
+								<g data-eye="happy"><path d="M99.5 22.5 q3.5 -4.5 7 0"/></g>
+								<g data-eye="wide"><circle cx="103" cy="20.5" r="4.4" fill="#fff" stroke-width="2"/><circle cx="103.6" cy="20.5" r="1.7" fill="${INKC}" stroke="none"/></g>
+								<g data-eye="shut"><path d="M99.5 20.5 q3.5 4 7 0"/></g>
+							</g>
+						</g>
+					</g>
+					<g data-p="loaf"><g clip-path="url(#${clip})"><path d="M-17 9 V0 C-17 -11 17 -11 17 0 V9 Z" fill="${BREAD}" ${ink}/><path d="M-8 -5 l2 5 M-1 -6 l2 5 M6 -5 l2 5" fill="none" stroke="${INKC}" stroke-width="2" stroke-linecap="round"/></g><path data-p="cut" ${ink}/></g>
+					<g data-p="crust"><rect x="-7" y="-4.5" width="14" height="9" rx="4" fill="${BREAD}" stroke="${INKC}" stroke-width="2.5"/></g>
+					<g data-p="crumbs" fill="${BREAD}" stroke="${INKC}" stroke-width="1.5">${'<circle r="2.4"/>'.repeat(6)}</g>
+					<g data-p="you" fill="none" ${ink}>
+						<g data-p="ylegA"><path d="M17 38 V55 H23"/></g>
+						<g data-p="ylegB"><path d="M24 38 V55 H30"/></g>
+						<path data-p="yarmsRun" d="M13 24 L4 30 M27 22 L37 18"/>
+						<path data-p="yarmsUp" d="M13 22 L5 9 M27 22 L35 9"/>
+						<rect x="12" y="17" width="16" height="23" rx="6" fill="#ff5a3c"/>
+						<circle cx="20" cy="9" r="7.5" fill="#ffd23f"/>
+					</g>
+					<g data-p="puff"><g fill="${INKC}">${PUFF.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" data-r="${r}"/>`).join('')}</g><g fill="${WHITE}">${PUFF.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g></g>
+					<text data-p="burst" text-anchor="middle" ${font} fill="${INKC}" stroke="${WHITE}" stroke-width="5" paint-order="stroke" stroke-linejoin="round"></text>
+					<g data-p="zs" ${font} fill="#fff6d6" stroke="${INKC}" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round"><text>z</text><text>z</text><text>Z</text></g>
+				</g>
+			</svg>`
+		}
+		const REST = {
+			sky: skyAt(18), shake: 0, phase: 0, scroll: 0,
+			gx: 0, gy: 0, size: 1, tint: WHITE, flip: 1, tilt: 0, squash: 1, belly: 1, neck: 0, head: 0, beak: 0, wing: 0, legs: 'run', eye: 'angry', bulge: -1,
+			yx: 0, yy: 0, yrot: 0, ylegs: 'run', yarms: 'run',
+			crust: null, loaf: null, crumbs: [], burst: null, zs: null, puff: null,
+		}
+		// The point `off` units in front of the goose's head centre, in scene units.
+		function mouth(p, off = 20) {
+			const a = ((p.neck ?? 0) * Math.PI) / 180
+			const b = (((p.neck ?? 0) + (p.head ?? 0)) * Math.PI) / 180
+			const lx = 64 + 36 * Math.cos(a) + 30 * Math.sin(a) + off * Math.cos(b)
+			const ly = 54 + 36 * Math.sin(a) - 30 * Math.cos(a) + off * Math.sin(b) + 2
+			const z = p.size ?? 1
+			const fx = (p.flip ?? 1) < 0 ? 120 - lx : lx
+			return { x: p.gx + 52 + (fx - 52) * z, y: GOOSE_Y + (p.gy ?? 0) + 91 + (ly - 91) * z }
+		}
+		function draw(svg, pose) {
+			const p = { ...REST, ...pose }
+			if (!svg._q) {
+				svg._q = {}
+				svg.querySelectorAll('[data-p]').forEach((n) => (svg._q[n.dataset.p] = n))
+			}
+			const q = svg._q
+			const set = (n, k, v) => n.setAttribute(k, v)
+			const tf = (n, s) => set(n, 'transform', s)
+			const show = (n, on) => set(n, 'display', on ? 'inline' : 'none')
+			const rot = (a, x, y) => `rotate(${a.toFixed(1)} ${x} ${y})`
+			const at = (o) => `translate(${o.x.toFixed(1)} ${o.y.toFixed(1)}) rotate(${(o.r ?? 0).toFixed(1)}) scale(${(o.s ?? 1).toFixed(3)})`
+			set(q.sky, 'fill', p.sky.bg)
+			set(q.stars, 'opacity', p.sky.stars)
+			set(q.orb, 'cx', p.sky.x.toFixed(1))
+			set(q.orb, 'cy', p.sky.y.toFixed(1))
+			set(q.orb, 'fill', p.sky.fill)
+			tf(q.world, `translate(${p.shake.toFixed(1)} 0)`)
+			set(q.dashA, 'stroke-dashoffset', (p.scroll % 46).toFixed(1))
+			set(q.dashB, 'stroke-dashoffset', (p.scroll % 70).toFixed(1))
+			tf(q.prop, `translate(${(((((80 - p.scroll) % 440) + 440) % 440) - 230).toFixed(1)} 0)`)
+			if (svg._tint !== p.tint) {
+				svg.querySelectorAll('[data-w]').forEach((n) => set(n, n.dataset.w, p.tint))
+				svg._tint = p.tint
+			}
+
+			const run = p.legs === 'run'
+			const bob = run ? -2.5 * Math.abs(Math.sin(p.phase)) : 0
+			const swing = run ? 26 * Math.sin(p.phase) : 0
+			tf(
+				q.goose,
+				`translate(${p.gx.toFixed(1)} ${(GOOSE_Y + p.gy + bob).toFixed(1)}) translate(52 91) scale(${p.size.toFixed(3)}) translate(-52 -91)${p.flip < 0 ? ' translate(120 0) scale(-1 1)' : ''} ${rot(p.tilt, 44, 88)} translate(0 91) scale(1 ${p.squash.toFixed(3)}) translate(0 -91)`,
+			)
+			show(q.legA, p.legs === 'run' || p.legs === 'stand')
+			show(q.legB, p.legs === 'run' || p.legs === 'stand')
+			tf(q.legA, rot(swing, 46, 74))
+			tf(q.legB, rot(-swing, 58, 74))
+			tf(q.neckB, rot(p.neck, 64, 54))
+			tf(q.neckF, rot(p.neck, 64, 54))
+			tf(q.head, rot(p.head, 100, 24))
+			tf(q.face, rot(p.head, 100, 24))
+			tf(q.beakU, rot(-0.3 * p.beak, 107, 26))
+			tf(q.beakL, rot(0.7 * p.beak, 107, 26))
+			tf(q.wing, rot(p.wing, 60, 57))
+			tf(q.body, `translate(44 62) scale(${p.belly.toFixed(3)}) translate(-44 -62)`)
+			const swallowing = p.bulge > 0 && p.bulge < 1
+			show(q.bulgeB, swallowing)
+			show(q.bulgeF, swallowing)
+			if (swallowing) {
+				const [bx, by] = neckAt(1 - p.bulge)
+				for (const n of [q.bulgeB, q.bulgeF]) {
+					set(n, 'cx', bx.toFixed(1))
+					set(n, 'cy', by.toFixed(1))
+				}
+			}
+			for (const n of q.face.children) show(n, n.dataset.eye === p.eye)
+
+			const sat = p.ylegs === 'sit'
+			const stride = p.ylegs === 'run' ? 30 * Math.sin(p.phase + 1) : 0
+			const ybob = p.ylegs === 'run' ? -2 * Math.abs(Math.sin(p.phase + 1)) : 0
+			tf(q.you, `translate(${(YOU_X + p.yx).toFixed(1)} ${(96 + p.yy + ybob).toFixed(1)}) scale(0.9) ${rot(p.yrot, 20, 30)}`)
+			tf(q.ylegA, rot(sat ? -78 : stride, 17, 38))
+			tf(q.ylegB, rot(sat ? -90 : -stride, 24, 38))
+			show(q.yarmsRun, p.yarms !== 'up')
+			show(q.yarmsUp, p.yarms === 'up')
+
+			show(q.crust, !!p.crust)
+			if (p.crust) tf(q.crust, at(p.crust))
+			show(q.loaf, !!p.loaf)
+			if (p.loaf) {
+				const eaten = p.loaf.eaten ?? 0
+				const x = -18.5 + 37 * eaten
+				tf(q.loaf, at(p.loaf))
+				set(q.clip, 'x', x.toFixed(1))
+				show(q.cut, eaten > 0 && eaten < 1)
+				set(q.cut, 'd', `M${x.toFixed(1)} ${(-8.2 * Math.sqrt(clamp(1 - (x / 17) ** 2))).toFixed(1)} V9`)
+			}
+			;[...q.crumbs.children].forEach((n, i) => {
+				show(n, i < p.crumbs.length)
+				if (i < p.crumbs.length) tf(n, `translate(${p.crumbs[i].x.toFixed(1)} ${p.crumbs[i].y.toFixed(1)})`)
+			})
+			show(q.burst, !!p.burst)
+			if (p.burst) {
+				q.burst.textContent = p.burst.text
+				set(q.burst, 'font-size', p.burst.size ?? 22)
+				set(q.burst, 'opacity', clamp(p.burst.o ?? 1).toFixed(2))
+				tf(q.burst, at(p.burst))
+			}
+			show(q.zs, !!p.zs)
+			if (p.zs)
+				[...q.zs.children].forEach((n, i) => {
+					const k = (p.zs.p + i / 3) % 1
+					set(n, 'font-size', 12 + 4 * i)
+					set(n, 'opacity', Math.sin(Math.PI * k).toFixed(2))
+					tf(n, `translate(${(p.zs.x + 7 * i + 8 * k).toFixed(1)} ${(p.zs.y - 24 * k).toFixed(1)})`)
+				})
+			show(q.puff, !!p.puff)
+			if (p.puff) {
+				set(q.puff, 'opacity', clamp(p.puff.o ?? 1).toFixed(2))
+				tf(q.puff, at(p.puff))
+				// The ink ring stays about 2.5 units wide at any cloud size.
+				for (const n of q.puff.firstElementChild.children) set(n, 'r', (+n.dataset.r + 2.5 / (p.puff.s ?? 1)).toFixed(2))
+			}
+		}
+		const el = (id) => document.getElementById(id)
+		const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+		const an = (word) => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word}`
+		const cap = (s) => s[0].toUpperCase() + s.slice(1)
+
+		// Grows: the goose's size at each rank, as a share of the full-grown art. It grows a little every day between ranks.
+		const RANKS = [
+			{ from: 0, name: 'gosling', size: 0.5 },
+			{ from: 3, name: 'goose', size: 0.75 },
+			{ from: 7, name: 'big goose', size: 1 },
+			{ from: 14, name: 'boss goose', size: 1.3 },
+			{ from: 30, name: 'giant goose', size: 1.7 },
+		]
+		const rankAt = (n) => RANKS.findLast((r) => n >= r.from)
+		const sizeAt = (n) => {
+			const i = RANKS.findLastIndex((r) => n >= r.from)
+			const next = RANKS[i + 1]
+			return next ? lerp(RANKS[i].size, next.size, (n - RANKS[i].from) / (next.from - RANKS[i].from)) : RANKS[i].size
+		}
+		const times = (size) => `${(size / RANKS[0].size).toFixed(1)}×`
+		// Speeds up: each fed day pulls the catch time for an unfed day half an hour earlier, down to 6 pm.
+		const PULL = 0.5
+		const PULL_DAYS = 12
+		const catchAt = (n) => MIDNIGHT - PULL * Math.min(n, PULL_DAYS)
+		const span = (h) => (h < 1 ? `${h * 60} minutes` : plural(h, 'hour'))
+		// Nest: one egg per fed day (none spent in this example), five for a rest day, half lost when caught.
+		const REST_COST = 5
+		const lost = (eggs) => Math.ceil(eggs / 2)
+
+		const DIRS = {
+			grow: {
+				rule: 'Every day you feed the goose in full, it grows a little. It passes five ranks on the way, and its rank shows in the chase, on the widget and on your public profile. The rules of the day stay the same.',
+				cost: 'Costs no new rules. The risk is that it is only cosmetic: the pull is not wanting to lose a goose you grew.',
+				third: 'Goose',
+			},
+			fast: {
+				rule: `Every day you feed the goose in full, it runs faster the next day. A day you feed it nothing ends ${span(PULL)} earlier per day of streak, down to ${clock(catchAt(PULL_DAYS))} after ${PULL_DAYS} days. A crust still buys the same steps.`,
+				cost: 'The only one that makes the day itself harder. It is hardest on your best runs, and one late shift can end them, which is why it stops at 6 pm.',
+				third: 'Unfed day ends',
+			},
+			nest: {
+				rule: `Every day you feed the goose in full, it lays a golden egg. ${cap(plural(REST_COST, 'egg'))} buy a rest day that keeps the streak. If the goose catches you, it takes back half the nest.`,
+				cost: 'Gives you something to spend, a rest day that keeps the streak. It also adds a currency to explain and balance.',
+				third: 'Eggs',
+			},
+		}
+		const state = { dir: 'grow', n: 12 }
+		el('scene').innerHTML = sceneSvg('The goose chasing you')
+		const svg = el('scene').firstElementChild
+		const extra = svg.querySelector('[data-p=extra]')
+
+		const stake = (n) => ({ grow: `${cap(rankAt(n).name)}, ${times(sizeAt(n))}`, fast: clock(catchAt(n)), nest: `${n}` })[state.dir]
+		function title(n) {
+			if (state.dir === 'grow')
+				return n
+					? `Grows: at a ${n}-day streak ${an(rankAt(n).name)} is chasing you at ${times(sizeAt(n)).replace('×', '')} times its starting size, and it starts over as a gosling when it catches you`
+					: 'Grows: every streak starts with a gosling, and it gets bigger each day you feed it in full'
+			if (state.dir === 'fast')
+				return n
+					? `Speeds up: at a ${n}-day streak a day you feed the goose nothing ends at ${clock(catchAt(n))}, ${span(MIDNIGHT - catchAt(n))} earlier than with no streak`
+					: `Speeds up: with no streak an unfed day ends at midnight, and each fed day pulls that ${span(PULL)} earlier`
+			return n
+				? `Nest: at a ${n}-day streak you hold ${plural(n, 'golden egg')}, and the goose takes ${lost(n)} back if it catches you`
+				: 'Nest: each day you feed the goose in full it lays one golden egg, and it takes half back when it catches you'
+		}
+		function readout(n) {
+			if (state.dir === 'grow') {
+				const next = RANKS.find((r) => r.from > n)
+				return {
+					head: `${cap(an(rankAt(n).name))} is after you`,
+					sub: `${next ? `${plural(next.from - n, 'more fed day')} and it is ${an(next.name)}.` : 'It is as big as it gets.'}${n ? ' If it catches you, it is a gosling again.' : ''}`,
+				}
+			}
+			if (state.dir === 'fast')
+				return {
+					head: `It gets you by ${clock(catchAt(n))}`,
+					sub: `That is if you feed it nothing today. ${n < PULL_DAYS ? `Each fed day pulls it ${span(PULL)} earlier.` : 'It never comes earlier than this.'}`,
+				}
+			return {
+				head: n ? `${cap(plural(n, 'golden egg'))} in the nest` : 'No golden eggs yet',
+				sub: `${n >= REST_COST ? `${cap(plural(REST_COST, 'egg'))} buy a rest day.` : `${plural(REST_COST - n, 'more egg')} and you can buy a rest day.`}${n ? ` If the goose catches you, it takes ${lost(n)} back.` : ''}`,
+			}
+		}
+		function scene(n) {
+			const z = state.dir === 'grow' ? sizeAt(n) : 1
+			// Keep the beak tip 35 units behind you at every size.
+			const gx = YOU_X - 35 - 52 - 71 * z
+			const bob = -2.5 * Math.abs(Math.sin(0.9))
+			let marks = ''
+			if (state.dir === 'grow' && rankAt(n).from >= 14)
+				marks = `<path transform="translate(${(gx + 52 + 48 * z).toFixed(1)} ${(GOOSE_Y + 91 + bob - 77 * z).toFixed(1)}) scale(${z}) rotate(6)" d="M-8 0 L-9 -10 L-3 -5 L1 -12 L5 -5 L11 -10 L10 0 Z" fill="#ffd23f" stroke="${INKC}" stroke-width="2.5" stroke-linejoin="round"/>`
+			if (state.dir === 'fast')
+				marks = Array.from({ length: Math.ceil(Math.min(n, PULL_DAYS) / 3) }, (_, i) => `<path d="M${(gx - 4 - 5 * (i % 2)).toFixed(1)} ${96 + 10 * i} h${-18 - 6 * (i % 2)}" stroke="${INKC}" stroke-width="3" stroke-linecap="round"/>`).join('')
+			extra.innerHTML = marks
+			draw(svg, {
+				phase: 0.9,
+				gx,
+				size: z,
+				tilt: state.dir === 'fast' ? Math.min(n, PULL_DAYS) * 0.5 : 0,
+				tint: state.dir === 'grow' && rankAt(n).from === 0 ? '#ffe27a' : WHITE,
+			})
+		}
+		function side(n) {
+			const rows = [
+				['Fed in full', n + 1, stake(n + 1)],
+				['Short', n, stake(n)],
+				['Caught', 0, state.dir === 'nest' ? `${n - lost(n)}` : stake(0)],
+			]
+			if (state.dir === 'nest' && n >= REST_COST) rows.splice(2, 0, [`Rest day, ${plural(REST_COST, 'egg')}`, n, `${n - REST_COST}`])
+			const pct = ((catchAt(n) - DAWN) / (MIDNIGHT - DAWN)) * 100
+			const graphic = {
+				grow: `<table class="ui-table"><thead><tr><th>Rank</th><th class="num">From day</th><th class="num">Size</th></tr></thead><tbody>${RANKS.map(
+					(r) => `<tr class="${r === rankAt(n) ? '' : 'off'}"><td>${cap(r.name)}</td><td class="num">${r.from}</td><td class="num">${times(r.size)}</td></tr>`,
+				).join('')}</tbody></table>`,
+				fast: `<div><div class="daybar" role="img" aria-label="An unfed day ends at ${clock(catchAt(n))}">
+					<div class="safe" style="width: ${pct.toFixed(1)}%"></div><div class="mark" style="left: ${pct.toFixed(1)}%"></div>
+					<div class="lbl" style="left: ${pct.toFixed(1)}%">Unfed, it catches you at ${clock(catchAt(n))}</div>
+				</div><div class="ticks ui-caption"><span>6 am</span><span>noon</span><span>6 pm</span><span>midnight</span></div></div>`,
+				nest: '',
+			}[state.dir]
+			return `<p>${DIRS[state.dir].rule}</p>${graphic}
+				<div class="ui-stack" style="--gap: 4px"><p class="ui-label">After tonight, starting from ${n ? `a ${n}-day streak` : 'no streak'}</p>
+				<table class="ui-table"><thead><tr><th>Tonight ends</th><th class="num">Streak</th><th class="num">${DIRS[state.dir].third}</th></tr></thead><tbody>${rows
+					.map((r) => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`)
+					.join('')}</tbody></table></div>
+				<p class="ui-caption">A short day (some fed, not caught) keeps the streak where it is. The goose already starts the next day closer by what you left unfed, so a run of short days still ends in a catch.</p>`
+		}
+		function render() {
+			const n = state.n
+			const r = readout(n)
+			el('title').textContent = title(n)
+			el('cost').textContent = DIRS[state.dir].cost
+			el('streakLabel').textContent = plural(n, 'day')
+			el('badge').textContent = n ? `${n}-day streak` : 'No streak yet'
+			el('head').textContent = r.head
+			el('sub').textContent = r.sub
+			el('eggs').innerHTML = state.dir === 'nest' ? '<i></i>'.repeat(n) : ''
+			el('side').innerHTML = side(n)
+			scene(n)
+		}
+		el('dir').addEventListener('change', (e) => {
+			state.dir = e.detail.value
+			render()
+		})
+		el('streak').addEventListener('input', (e) => {
+			state.n = +e.target.value
+			render()
+		})
+		render()
+	}
+</script>

@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 from feed_the_goose.config import settings
+from feed_the_goose.models import Base
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# T04 sets this to the models' metadata.
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:

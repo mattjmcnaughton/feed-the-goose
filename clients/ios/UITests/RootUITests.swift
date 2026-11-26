@@ -9,16 +9,16 @@ func saveScreenshot(_ name: String) {
 }
 
 final class RootUITests: XCTestCase {
-	func testRootListsEveryFeature() {
+	/// The fake environment is signed in with habits, so the app opens on the tabs.
+	func testFixturesOpenOnTheTabs() {
 		let app = XCUIApplication()
+		app.launchArguments = ["-FTGUseFixtures"]
 		app.launch()
-		for label in ["Sign in", "Habit setup", "Habits", "Today", "Settings"] {
-			XCTAssertTrue(app.buttons[label].waitForExistence(timeout: 5), label)
-		}
-		XCTAssertEqual(app.staticTexts["root.server"].label, "http://localhost:8000")
-		saveScreenshot("root")
-		app.buttons["Today"].tap()
+		XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 5))
 		XCTAssertTrue(app.staticTexts["Built in T16."].waitForExistence(timeout: 5))
+		saveScreenshot("root")
+		app.tabBars.buttons["Settings"].tap()
+		XCTAssertTrue(app.staticTexts["Built in T17."].waitForExistence(timeout: 5))
 	}
 
 	func testRigGalleryLaunchArgument() {

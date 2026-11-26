@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from feed_the_goose.dtos.common import Dto, Instant, LocalTime, Pursuer
+from feed_the_goose.dtos.common import Dto, Instant, LocalTime, Pursuer, RequestDto
 
 
 class PendingDay(Dto):
@@ -31,7 +31,7 @@ class User(Dto):
     created_at: Instant
 
 
-class UserUpdate(Dto):
+class UserUpdate(RequestDto):
     """Fields to change. Changes to the day take effect from the next day."""
 
     display_name: str | None = Field(default=None, min_length=1)

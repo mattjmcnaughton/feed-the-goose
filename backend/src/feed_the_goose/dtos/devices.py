@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from pydantic import Field
 
-from feed_the_goose.dtos.common import Dto, LocalTime
+from feed_the_goose.dtos.common import Dto, LocalTime, RequestDto
 
 
 class ApnsEnvironment(StrEnum):
@@ -12,7 +12,7 @@ class ApnsEnvironment(StrEnum):
     production = "production"
 
 
-class DeviceRegistration(Dto):
+class DeviceRegistration(RequestDto):
     apns_token: str = Field(min_length=1)
     widget_push_token: str | None = None
     environment: ApnsEnvironment

@@ -10,7 +10,6 @@
         "type": "string"
       },
       "Chase": {
-        "additionalProperties": false,
         "description": "The state of a day's chase at `as_of`.",
         "properties": {
           "as_of": {
@@ -19,17 +18,10 @@
             "type": "string"
           },
           "caught_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "When the lead reaches 0 if nothing more is logged, or when the catch happened. Null when no catch happens by `day_ends_at`.",
-            "title": "Caught At"
+            "format": "date-time",
+            "title": "Caught At",
+            "type": "string"
           },
           "date": {
             "format": "date",
@@ -103,7 +95,6 @@
           "day_starts_at",
           "day_ends_at",
           "next_day_starts_at",
-          "caught_at",
           "habits",
           "streak"
         ],
@@ -111,7 +102,6 @@
         "type": "object"
       },
       "ChaseHabit": {
-        "additionalProperties": false,
         "description": "One habit's progress in a day, in `position` order.",
         "properties": {
           "chunk": {
@@ -173,7 +163,6 @@
         "type": "string"
       },
       "DaySummary": {
-        "additionalProperties": false,
         "description": "One day's result. `end_lead` is null while the day is running.",
         "properties": {
           "complete_days": {
@@ -187,15 +176,8 @@
             "type": "string"
           },
           "end_lead": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "End Lead"
+            "title": "End Lead",
+            "type": "number"
           },
           "pursuer": {
             "$ref": "#/components/schemas/Pursuer"
@@ -208,7 +190,6 @@
           "date",
           "pursuer",
           "result",
-          "end_lead",
           "complete_days"
         ],
         "title": "DaySummary",
@@ -231,15 +212,8 @@
             "$ref": "#/components/schemas/ApnsEnvironment"
           },
           "widget_push_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Widget Push Token"
+            "title": "Widget Push Token",
+            "type": "string"
           }
         },
         "required": [
@@ -251,7 +225,6 @@
         "type": "object"
       },
       "Event": {
-        "additionalProperties": false,
         "description": "What a log or an undo did, so the app knows which clip to play.",
         "properties": {
           "habit_id": {
@@ -287,7 +260,6 @@
         "type": "string"
       },
       "FieldError": {
-        "additionalProperties": false,
         "description": "One field that failed validation.",
         "properties": {
           "field": {
@@ -307,20 +279,12 @@
         "type": "object"
       },
       "Habit": {
-        "additionalProperties": false,
         "description": "A habit belongs to a day when `effective_from <= day < archived_from`.",
         "properties": {
           "archived_from": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Archived From"
+            "format": "date",
+            "title": "Archived From",
+            "type": "string"
           },
           "chunk": {
             "description": "The usual amount, logged by one tap.",
@@ -361,8 +325,7 @@
           "target",
           "chunk",
           "position",
-          "effective_from",
-          "archived_from"
+          "effective_from"
         ],
         "title": "Habit",
         "type": "object"
@@ -405,71 +368,35 @@
         "description": "Fields to change. A new target takes effect from the next day.",
         "properties": {
           "chunk": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chunk"
+            "exclusiveMinimum": 0.0,
+            "title": "Chunk",
+            "type": "integer"
           },
           "name": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
           },
           "position": {
-            "anyOf": [
-              {
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Position"
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
           },
           "target": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target"
+            "exclusiveMinimum": 0.0,
+            "title": "Target",
+            "type": "integer"
           },
           "unit": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unit"
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
           }
         },
         "title": "HabitUpdate",
         "type": "object"
       },
       "Key": {
-        "additionalProperties": false,
         "properties": {
           "created_at": {
             "format": "date-time",
@@ -485,16 +412,9 @@
             "$ref": "#/components/schemas/KeyKind"
           },
           "last_used_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Used At"
+            "format": "date-time",
+            "title": "Last Used At",
+            "type": "string"
           },
           "name": {
             "title": "Name",
@@ -505,8 +425,7 @@
           "id",
           "kind",
           "name",
-          "created_at",
-          "last_used_at"
+          "created_at"
         ],
         "title": "Key",
         "type": "object"
@@ -531,7 +450,6 @@
         "type": "object"
       },
       "KeyCreated": {
-        "additionalProperties": false,
         "description": "A new key. `secret` is returned this once only.",
         "properties": {
           "created_at": {
@@ -548,16 +466,9 @@
             "$ref": "#/components/schemas/KeyKind"
           },
           "last_used_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Used At"
+            "format": "date-time",
+            "title": "Last Used At",
+            "type": "string"
           },
           "name": {
             "title": "Name",
@@ -573,7 +484,6 @@
           "kind",
           "name",
           "created_at",
-          "last_used_at",
           "secret"
         ],
         "title": "KeyCreated",
@@ -589,7 +499,6 @@
         "type": "string"
       },
       "Log": {
-        "additionalProperties": false,
         "properties": {
           "amount": {
             "title": "Amount",
@@ -625,16 +534,9 @@
             "type": "number"
           },
           "undone_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Undone At"
+            "format": "date-time",
+            "title": "Undone At",
+            "type": "string"
           }
         },
         "required": [
@@ -644,8 +546,7 @@
           "logged_at",
           "source",
           "date",
-          "steps",
-          "undone_at"
+          "steps"
         ],
         "title": "Log",
         "type": "object"
@@ -655,17 +556,10 @@
         "description": "A log. The client creates `id` (a UUIDv7) and `logged_at` once.",
         "properties": {
           "amount": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Defaults to the habit's chunk.",
-            "title": "Amount"
+            "exclusiveMinimum": 0.0,
+            "title": "Amount",
+            "type": "integer"
           },
           "habit_id": {
             "format": "uuid",
@@ -696,7 +590,6 @@
         "type": "object"
       },
       "LogResult": {
-        "additionalProperties": false,
         "description": "A log, what it did, and the chase after it.",
         "properties": {
           "chase": {
@@ -718,7 +611,6 @@
         "type": "object"
       },
       "PendingDay": {
-        "additionalProperties": false,
         "description": "Day settings that take effect when the day `effective_from` starts.",
         "properties": {
           "day_end": {
@@ -751,35 +643,18 @@
         "type": "object"
       },
       "Problem": {
-        "additionalProperties": false,
         "description": "An `application/problem+json` body. `errors` is set only for `invalid`.",
         "properties": {
           "detail": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Detail"
+            "title": "Detail",
+            "type": "string"
           },
           "errors": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/FieldError"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Errors"
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "title": "Errors",
+            "type": "array"
           },
           "status": {
             "title": "Status",
@@ -818,7 +693,6 @@
         "type": "string"
       },
       "ProfileDay": {
-        "additionalProperties": false,
         "properties": {
           "date": {
             "format": "date",
@@ -837,18 +711,10 @@
         "type": "object"
       },
       "ProfileSettings": {
-        "additionalProperties": false,
         "properties": {
           "handle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Handle"
+            "title": "Handle",
+            "type": "string"
           },
           "public": {
             "title": "Public",
@@ -856,7 +722,6 @@
           }
         },
         "required": [
-          "handle",
           "public"
         ],
         "title": "ProfileSettings",
@@ -883,7 +748,6 @@
         "type": "object"
       },
       "PublicProfile": {
-        "additionalProperties": false,
         "properties": {
           "as_of": {
             "format": "date-time",
@@ -954,7 +818,6 @@
         "type": "string"
       },
       "QuietHours": {
-        "additionalProperties": false,
         "description": "Local times in the user's time zone. `end` may be on the next date.",
         "properties": {
           "end": {
@@ -976,21 +839,13 @@
         "type": "object"
       },
       "Reminders": {
-        "additionalProperties": false,
         "properties": {
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
           },
           "quiet_hours": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/QuietHours"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/QuietHours"
           },
           "when_lead_below": {
             "minimum": 0.0,
@@ -1000,14 +855,12 @@
         },
         "required": [
           "enabled",
-          "when_lead_below",
-          "quiet_hours"
+          "when_lead_below"
         ],
         "title": "Reminders",
         "type": "object"
       },
       "Session": {
-        "additionalProperties": false,
         "description": "An app session. `current` marks the one making the request.",
         "properties": {
           "created_at": {
@@ -1074,7 +927,6 @@
         "type": "object"
       },
       "SessionCreated": {
-        "additionalProperties": false,
         "description": "A new app session. The token is returned this once only.",
         "properties": {
           "expires_at": {
@@ -1111,7 +963,6 @@
         "type": "string"
       },
       "Streak": {
-        "additionalProperties": false,
         "properties": {
           "complete_days": {
             "description": "Includes today when today is complete.",
@@ -1132,7 +983,6 @@
         "type": "object"
       },
       "User": {
-        "additionalProperties": false,
         "description": "The signed-in user. The day fields are the ones in effect today.",
         "properties": {
           "created_at": {
@@ -1164,14 +1014,7 @@
             "type": "string"
           },
           "pending": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PendingDay"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/PendingDay"
           },
           "pursuer": {
             "$ref": "#/components/schemas/Pursuer"
@@ -1190,7 +1033,6 @@
           "time_zone",
           "day_start",
           "day_end",
-          "pending",
           "created_at"
         ],
         "title": "User",
@@ -1201,66 +1043,37 @@
         "description": "Fields to change. Changes to the day take effect from the next day.",
         "properties": {
           "day_end": {
-            "anyOf": [
-              {
-                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Day End"
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "Day End",
+            "type": "string"
           },
           "day_start": {
-            "anyOf": [
-              {
-                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Day Start"
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "Day Start",
+            "type": "string"
           },
           "display_name": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
           },
           "pursuer": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Pursuer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Pursuer"
           },
           "time_zone": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Time Zone"
+            "minLength": 1,
+            "title": "Time Zone",
+            "type": "string"
           }
         },
         "title": "UserUpdate",
         "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -1362,6 +1175,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Sessions",
         "tags": [
           "auth"
@@ -1419,6 +1237,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Delete Session",
         "tags": [
           "auth"
@@ -1461,6 +1284,11 @@
             "description": "`no_chase`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Chase Today",
         "tags": [
           "chase"
@@ -1529,6 +1357,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Days",
         "tags": [
           "chase"
@@ -1565,6 +1398,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Habits",
         "tags": [
           "habits"
@@ -1614,6 +1452,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Create Habit",
         "tags": [
           "habits"
@@ -1678,6 +1521,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Archive Habit",
         "tags": [
           "habits"
@@ -1749,6 +1597,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Update Habit",
         "tags": [
           "habits"
@@ -1807,6 +1660,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Logs",
         "tags": [
           "logs"
@@ -1887,6 +1745,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Create Log",
         "tags": [
           "logs"
@@ -1960,6 +1823,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Undo Log",
         "tags": [
           "logs"
@@ -1985,6 +1853,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Delete Me",
         "tags": [
           "me"
@@ -2014,6 +1887,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Me",
         "tags": [
           "me"
@@ -2064,6 +1942,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Update Me",
         "tags": [
           "me"
@@ -2110,6 +1993,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Delete Device",
         "tags": [
           "devices"
@@ -2165,6 +2053,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Register Device",
         "tags": [
           "devices"
@@ -2200,6 +2093,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Keys",
         "tags": [
           "keys"
@@ -2250,6 +2148,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Create Key",
         "tags": [
           "keys"
@@ -2306,6 +2209,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Delete Key",
         "tags": [
           "keys"
@@ -2337,6 +2245,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Profile Settings",
         "tags": [
           "profile"
@@ -2396,6 +2309,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Update Profile Settings",
         "tags": [
           "profile"
@@ -2427,6 +2345,11 @@
             "description": "`unauthenticated`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Reminders",
         "tags": [
           "reminders"
@@ -2476,6 +2399,11 @@
             "description": "`invalid`"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Update Reminders",
         "tags": [
           "reminders"

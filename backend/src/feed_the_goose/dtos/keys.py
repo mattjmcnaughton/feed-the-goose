@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from feed_the_goose.dtos.common import Dto, Instant
+from feed_the_goose.dtos.common import Dto, Instant, RequestDto
 
 
 class KeyKind(StrEnum):
@@ -15,7 +15,7 @@ class KeyKind(StrEnum):
     mcp = "mcp"
 
 
-class KeyCreate(Dto):
+class KeyCreate(RequestDto):
     kind: KeyKind
     name: str = Field(min_length=1)
 

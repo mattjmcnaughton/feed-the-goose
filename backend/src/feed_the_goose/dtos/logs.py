@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import Field
 
 from feed_the_goose.dtos.chase import Chase, Event
-from feed_the_goose.dtos.common import Dto, Instant
+from feed_the_goose.dtos.common import Dto, Instant, RequestDto
 
 
 class Source(StrEnum):
@@ -20,7 +20,7 @@ class Source(StrEnum):
     mcp = "mcp"
 
 
-class LogCreate(Dto):
+class LogCreate(RequestDto):
     """A log. The client creates `id` (a UUIDv7) and `logged_at` once."""
 
     id: UUID

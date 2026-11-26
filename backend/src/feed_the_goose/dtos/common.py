@@ -4,11 +4,24 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    WithJsonSchema,
+)
 
 
 class Dto(BaseModel):
-    """Base for every API model. Unknown fields are refused."""
+    """Base for response models. Their schemas stay open, so a client already
+    installed keeps decoding a response that gains a field."""
+
+
+class RequestDto(Dto):
+    """Base for request models. Unknown fields are refused."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -17,8 +30,18 @@ def _to_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-# An instant with a time zone, sent in UTC such as 2026-11-26T14:05:00Z.
-Instant = Annotated[AwareDatetime, AfterValidator(_to_utc)]
+def _whole_seconds(value: datetime) -> str:
+    return value.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# An instant with a time zone. Sent in UTC to the whole second, such as
+# 2026-11-26T14:05:00Z, so one ISO 8601 format decodes every timestamp.
+Instant = Annotated[
+    AwareDatetime,
+    AfterValidator(_to_utc),
+    PlainSerializer(_whole_seconds, when_used="json"),
+    WithJsonSchema({"type": "string", "format": "date-time"}),
+]
 
 # A local time of day such as 06:00, in the user's time zone.
 LocalTime = Annotated[str, Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")]

@@ -9,7 +9,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from feed_the_goose.dtos.common import ChaseState, Dto, Instant, Pursuer
+from feed_the_goose.dtos.common import ChaseState, Dto, Instant, Pursuer, RequestDto
 
 Handle = Annotated[str, Field(pattern=r"^[a-z0-9-]{3,30}$")]
 
@@ -19,7 +19,7 @@ class ProfileSettings(Dto):
     public: bool
 
 
-class ProfileUpdate(Dto):
+class ProfileUpdate(RequestDto):
     handle: Handle
     public: bool
 

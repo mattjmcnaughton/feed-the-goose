@@ -1,0 +1,49 @@
+# iOS commands. Run them on a Mac satellite started with image macos-26 (see AGENTS.md).
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# The pins. .xcode-version holds the Xcode path; the simulator is an iPhone 17 Pro on iOS 26.2.
+xcode := trim(read(".xcode-version"))
+export DEVELOPER_DIR := xcode + "/Contents/Developer"
+simulator := "iPhone 17 Pro"
+runtime := "26.2"
+destination := "platform=iOS Simulator,name=" + simulator + ",OS=" + runtime
+derived := "build/DerivedData"
+app := derived + "/Build/Products/Debug-iphonesimulator/FeedTheGoose.app"
+captures := env("FTG_CAPTURE_DIR", "/tmp/ftg-captures")
+xcodebuild := "xcodebuild -project FeedTheGoose.xcodeproj -scheme FeedTheGoose -destination '" + destination + "' -derivedDataPath " + derived
+
+default:
+    @just --list
+
+# Generate FeedTheGoose.xcodeproj from project.yml with XcodeGen. It is never committed.
+ios-generate:
+    xcodegen generate --spec project.yml
+
+# Build the app and the widget extension for the pinned simulator.
+ios-build: ios-generate
+    {{xcodebuild}} -quiet build
+
+# The merge gate for an iOS ticket: unit and package tests, without the UI tests.
+ios-test: ios-generate
+    {{xcodebuild}} test -skip-testing:FeedTheGooseUITests
+
+# The UI tests, including the sharing test that adds the widget to the Home Screen.
+ios-uitest: ios-generate
+    mkdir -p "{{captures}}"
+    TEST_RUNNER_FTG_CAPTURE_DIR="{{captures}}" {{xcodebuild}} test -only-testing:FeedTheGooseUITests
+
+# Boot the pinned simulator and wait until it is ready.
+ios-boot:
+    udid="$(scripts/simulator-udid.sh '{{simulator}}' '{{runtime}}')"; \
+    xcrun simctl boot "$udid" 2>/dev/null || true; \
+    xcrun simctl bootstatus "$udid"
+
+# Install the last build on the pinned simulator.
+ios-install: ios-boot
+    xcrun simctl install "$(scripts/simulator-udid.sh '{{simulator}}' '{{runtime}}')" "{{app}}"
+
+# Save a screenshot of the pinned simulator to the capture folder.
+ios-screenshot name="screen":
+    mkdir -p "{{captures}}"
+    xcrun simctl io "$(scripts/simulator-udid.sh '{{simulator}}' '{{runtime}}')" screenshot "{{captures}}/{{name}}.png"

@@ -15,7 +15,7 @@ final class RootUITests: XCTestCase {
 		app.launchArguments = ["-FTGUseFixtures"]
 		app.launch()
 		XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 5))
-		XCTAssertTrue(app.staticTexts["Built in T16."].waitForExistence(timeout: 5))
+		XCTAssertTrue(app.staticTexts["today.headline"].waitForExistence(timeout: 5))
 		saveScreenshot("root")
 		app.tabBars.buttons["Settings"].tap()
 		XCTAssertTrue(app.staticTexts["Built in T17."].waitForExistence(timeout: 5))

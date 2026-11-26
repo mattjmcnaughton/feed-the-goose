@@ -1,0 +1,3 @@
+2026-11-26T19:41:28Z web stopped
+2026-11-26T19:41:57Z web back
+{"amount":10,"source":"app","logged_at":"2026-11-26T19:41:32Z","undone_at":null}

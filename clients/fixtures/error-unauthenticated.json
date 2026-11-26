@@ -1,0 +1,16 @@
+{
+  "name": "error-unauthenticated",
+  "request": {
+    "method": "GET",
+    "path": "/v1/habits",
+    "body": null
+  },
+  "response": {
+    "status": 401,
+    "body": {
+      "type": "unauthenticated",
+      "title": "Not signed in",
+      "status": 401
+    }
+  }
+}

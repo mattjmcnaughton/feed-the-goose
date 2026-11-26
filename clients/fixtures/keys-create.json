@@ -1,0 +1,22 @@
+{
+  "name": "keys-create",
+  "request": {
+    "method": "POST",
+    "path": "/v1/me/keys",
+    "body": {
+      "kind": "mcp",
+      "name": "Amp"
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "id": "44444444-4444-4444-8444-000000000003",
+      "kind": "mcp",
+      "name": "Amp",
+      "created_at": "2026-11-26T23:00:00Z",
+      "last_used_at": null,
+      "secret": "ftg_fixture-not-a-real-key-00000000000000000000"
+    }
+  }
+}

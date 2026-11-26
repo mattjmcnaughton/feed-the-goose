@@ -1,0 +1,16 @@
+{
+  "name": "error-not-implemented",
+  "request": {
+    "method": "GET",
+    "path": "/v1/habits",
+    "body": null
+  },
+  "response": {
+    "status": 501,
+    "body": {
+      "type": "not_implemented",
+      "title": "Not implemented yet",
+      "status": 501
+    }
+  }
+}

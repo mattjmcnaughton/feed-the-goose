@@ -1,0 +1,16 @@
+{
+  "name": "error-no-chase",
+  "request": {
+    "method": "GET",
+    "path": "/v1/chase/today",
+    "body": null
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "type": "no_chase",
+      "title": "No chase today",
+      "status": 404
+    }
+  }
+}

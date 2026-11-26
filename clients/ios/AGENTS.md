@@ -56,6 +56,27 @@ reporting.
   `-FTGSharingProbe <value>` (writes the value for the sharing test), and `-FTGUseFixtures`
   (the fake environment), with `-FTGFreshAccount` for a fake account with no habits.
 
+## Live test
+
+`UITests/LiveBackendTests.swift` runs the real app against the orb's backend (T19): dev sign-in
+as `live@example.com`, add a habit, log a chunk, see the lead rise and the habit's progress
+change. It reads `/v1/chase/today` and `/v1/logs` with its own session and checks the screen
+against them, and that a target change leaves today's chase unchanged. No fixtures: the server
+owns the rules, so don't swap in `-FTGUseFixtures` or `-FTGTodayScript`.
+
+1. In the orb, start Postgres and the backend with the test email allowed (see
+   `backend/AGENTS.md`): `ALLOWED_EMAILS=you@example.com,live@example.com just dev`.
+2. Start the Mac with `forward_ports: ["8000:8000"]`.
+3. On the Mac, `just ios-live-test`: it checks `localhost:8000/readyz`, erases and boots the
+   simulator, records it to `$FTG_CAPTURE_DIR/live-test.mp4`, and runs only this test.
+
+- Each run deletes the account first, so sign-in creates it again. At the end it revokes the
+  account's sessions and relaunches to sign-in, because the Keychain survives reinstalls and
+  `SharingUITests` expects a signed-out app. The account and its log stay in the database.
+- `just ios-uitest` runs it too, and skips it when nothing answers at `localhost:8000/readyz`.
+- The day runs 06:00 to 00:00 in the simulator's zone (the Mac's, GMT on the satellite). Between
+  midnight and 06:00 a new account has no chase yet, so run it in the day.
+
 ## Sharing without a signing team
 
 Checked by T11 on 2026-11-26 with Xcode 26.3 and iOS 26.2: an ad hoc signed simulator build

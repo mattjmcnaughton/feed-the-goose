@@ -1,29 +1,83 @@
+import GooseCore
 import SwiftUI
 
-/// The root of the app. T14 makes it switch on `SessionModel` between `SignInView`,
-/// `HabitSetupView` and the tabs for Today and Settings. Until then it lists each feature's
-/// entry view so that every placeholder can be reached.
+/// The root of the app. It switches on `SessionModel` between sign-in, habit setup and the tabs
+/// for Today and Settings (TDD §6.4), and provides the model to every screen below it.
 struct RootView: View {
 	let environment: LiveEnvironment
+	@State private var session: SessionModel
+
+	init(environment: LiveEnvironment) {
+		self.environment = environment
+		_session = State(initialValue: SessionModel(
+			environment: environment.app,
+			identity: environment.identity,
+			refusals: environment.refusals,
+			reloadWidgets: environment.reloadWidgets
+		))
+	}
 
 	var body: some View {
 		let app = environment.app
-		NavigationStack {
-			List {
-				NavigationLink("Sign in") { SignInView(environment: app) }
-				NavigationLink("Habit setup") { HabitSetupView(environment: app) }
-				NavigationLink("Habits") { HabitsView(environment: app) }
-				NavigationLink("Today") { TodayView(environment: app) }
-				NavigationLink("Settings") { SettingsView(environment: app) }
-				Section("Server") {
-					Text(environment.baseURL.absoluteString)
-						.accessibilityIdentifier("root.server")
-					if app.usesFixtures {
-						Text("Using fixtures").accessibilityIdentifier("root.fixtures")
+		Group {
+			switch session.state {
+			case .starting:
+				ProgressView().accessibilityIdentifier("root.starting")
+			case .signedOut:
+				SignInView(model: signInModel)
+			case .needsHabits:
+				NavigationStack {
+					HabitSetupView(environment: app)
+						.toolbar {
+							ToolbarItem(placement: .cancellationAction) { SignOutButton() }
+							// Habit setup saves each habit itself; this asks the server again and
+							// moves on to the chase once there is one.
+							ToolbarItem(placement: .confirmationAction) {
+								Button("Done") { Task { await session.checkHabits() } }
+									.accessibilityIdentifier("habitSetup.done")
+							}
+						}
+				}
+			case .signedIn:
+				TabView {
+					Tab("Today", systemImage: "figure.run") {
+						NavigationStack { TodayView(environment: app) }
+					}
+					Tab("Settings", systemImage: "gearshape") {
+						NavigationStack {
+							SettingsView(environment: app)
+								.toolbar { ToolbarItem(placement: .topBarTrailing) { SignOutButton() } }
+						}
 					}
 				}
+			case .unreachable:
+				ContentUnavailableView {
+					Label("Couldn't reach the server", systemImage: "wifi.exclamationmark")
+				} description: {
+					Text("Your habits couldn't be loaded. Check your connection and try again.")
+				} actions: {
+					Button("Try again") { Task { await session.start() } }
+						.buttonStyle(.borderedProminent)
+					SignOutButton()
+				}
+				.accessibilityIdentifier("root.unreachable")
 			}
-			.navigationTitle("Feed the Goose")
 		}
+		.environment(session)
+		.task { await session.run() }
+	}
+
+	private var signInModel: SignInModel {
+		#if DEBUG
+			let server: String? = environment.baseURL.absoluteString
+		#else
+			let server: String? = nil
+		#endif
+		return SignInModel(
+			notice: session.notice,
+			isAvailable: session.canSignIn,
+			server: server,
+			signIn: { [session] email in try await session.signIn(email: email) }
+		)
 	}
 }

@@ -10,7 +10,8 @@ final class SharingUITests: XCTestCase {
 		let app = XCUIApplication()
 		app.launchArguments = ["-FTGSharingProbe", value]
 		app.launch()
-		XCTAssertTrue(app.buttons["Today"].waitForExistence(timeout: 10))
+		// A fresh install is signed out, so the app opens on sign-in once the probe is written.
+		XCTAssertTrue(app.textFields["signIn.email"].waitForExistence(timeout: 10))
 
 		let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 		XCUIDevice.shared.press(.home)

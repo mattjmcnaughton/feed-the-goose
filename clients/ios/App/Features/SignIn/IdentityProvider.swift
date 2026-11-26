@@ -15,7 +15,8 @@ protocol IdentityProvider: Sendable {
 	/// only in development and tests. Compiled only into debug builds.
 	struct DevIdentityProvider: IdentityProvider {
 		let baseURL: URL
-		var session: URLSession = .shared
+		/// Ephemeral, so the identity token is never written to a disk cache.
+		var session = URLSession(configuration: .ephemeral)
 
 		private struct Request: Encodable { let email: String }
 		private struct Response: Decodable { let identity_token: String }

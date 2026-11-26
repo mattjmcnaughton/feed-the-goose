@@ -29,9 +29,9 @@ async def create(client, name: str = "Pushups", **overrides):
     return response.json()
 
 
-async def chase_changed_at(db, user_id) -> datetime | None:
+async def chase_version(db, user_id) -> int | None:
     await db.rollback()  # a fresh read of the row
-    return await db.scalar(select(User.chase_changed_at).where(User.id == user_id))
+    return await db.scalar(select(User.chase_version).where(User.id == user_id))
 
 
 async def test_a_habit_added_before_the_days_first_log_starts_today(sign_in, db):
@@ -49,9 +49,7 @@ async def test_a_habit_added_before_the_days_first_log_starts_today(sign_in, db)
         habit["id"]
     ]
     # It joins today's chase, so the chase changed.
-    assert await chase_changed_at(db, me.user_id) == datetime(
-        2026, 11, 26, 15, tzinfo=UTC
-    )
+    assert await chase_version(db, me.user_id) == 1
 
 
 async def test_a_habit_added_after_the_days_first_log_starts_tomorrow(sign_in, db):
@@ -59,14 +57,14 @@ async def test_a_habit_added_after_the_days_first_log_starts_tomorrow(sign_in, d
     first = await create(me.client)
     await builders.log(db, me.user_id, uuid.UUID(first["id"]))
     await db.commit()
-    before = await chase_changed_at(db, me.user_id)
+    before = await chase_version(db, me.user_id)
 
     second = await create(me.client, "Reading", target=20, chunk=5)
 
     assert second["effective_from"] == TOMORROW
     assert second["position"] == 1
     # Today's set of habits is unchanged, so its chase is too.
-    assert await chase_changed_at(db, me.user_id) == before
+    assert await chase_version(db, me.user_id) == before
 
 
 async def test_an_undone_log_still_counts_as_the_days_first(sign_in, db):
@@ -121,7 +119,7 @@ async def test_a_new_target_applies_from_the_next_day(sign_in, db):
     habit = await create(me.client)
     await builders.log(db, me.user_id, uuid.UUID(habit["id"]), amount=20)
     await db.commit()
-    before = await chase_changed_at(db, me.user_id)
+    before = await chase_version(db, me.user_id)
 
     response = await me.client.patch(f"/v1/habits/{habit['id']}", json={"target": 100})
 
@@ -133,7 +131,7 @@ async def test_a_new_target_applies_from_the_next_day(sign_in, db):
         .order_by(HabitTarget.effective_from)
     )
     assert [(str(d), t) for d, t in targets] == [(TODAY, 50), (TOMORROW, 100)]
-    assert await chase_changed_at(db, me.user_id) == before
+    assert await chase_version(db, me.user_id) == before
 
     # A second change the same day replaces the pending target.
     await me.client.patch(f"/v1/habits/{habit['id']}", json={"target": 80})
@@ -167,7 +165,7 @@ async def test_a_rename_and_a_new_chunk_apply_now(sign_in, db, clock):
         50,
     )
     assert got["effective_from"] == TODAY
-    assert await chase_changed_at(db, me.user_id) == later
+    assert await chase_version(db, me.user_id) == 2
 
 
 async def test_reordering_moves_one_habit_and_keeps_the_others_in_order(sign_in):

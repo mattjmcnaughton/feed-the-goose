@@ -24,8 +24,11 @@ class User(Base):
     reminder_lead_below: Mapped[int]
     quiet_hours_start: Mapped[time | None]
     quiet_hours_end: Mapped[time | None]
-    # Set by every write that changes a chase; the worker compares the two.
-    chase_changed_at: Mapped[datetime | None]
+    # Raised by one, under the user's lock, by every write that changes the current
+    # chase. The worker plans when it differs from the version it last planned.
+    chase_version: Mapped[int] = mapped_column(default=0, server_default="0")
+    reminders_planned_version: Mapped[int | None]
+    # The start of the latest day the worker planned, so a new day is planned too.
     reminders_planned_at: Mapped[datetime | None]
     created_at: Mapped[datetime]
 

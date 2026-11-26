@@ -145,12 +145,12 @@ class AccountService:
                     raise InvalidFieldsError({"pursuer": "Value is not valid"})
                 if changes.pursuer != user.pursuer:
                     user.pursuer = changes.pursuer
-                    user.chase_changed_at = now
+                    user.chase_version += 1
             if changes.display_name is not None:
                 user.display_name = changes.display_name
             if await self._change_day(db, user.id, changes, now):
                 # The current chase's `next_day_starts_at` may move.
-                user.chase_changed_at = now
+                user.chase_version += 1
             return await self._account(db, user)
 
     async def delete(self, principal: Principal) -> None:

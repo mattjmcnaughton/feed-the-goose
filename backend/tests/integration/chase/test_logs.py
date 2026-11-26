@@ -188,27 +188,27 @@ async def test_writes_that_change_the_chase_mark_it_changed_and_reads_do_not(
     user = await sign_in()
     pushups, *_ = await three_habits(db, user.user_id)
 
-    async def changed_at():
+    async def version():
         await db.commit()
         return await db.scalar(
-            select(User.chase_changed_at).where(User.id == user.user_id)
+            select(User.chase_version).where(User.id == user.user_id)
         )
 
     await user.client.get("/v1/chase/today")
-    after_read = await changed_at()
+    after_read = await version()
     body = log_body(pushups.id, "2026-11-26T14:00:00Z")
     await user.client.post("/v1/logs", json=body)
-    after_log = await changed_at()
+    after_log = await version()
     clock.set(builders.EXAMPLE_START + timedelta(hours=5))
     await user.client.post("/v1/logs", json=body)
-    after_replay = await changed_at()
+    after_replay = await version()
     await user.client.delete(f"/v1/logs/{body['id']}")
-    after_undo = await changed_at()
+    after_undo = await version()
 
-    assert after_read is None
-    assert after_log == builders.EXAMPLE_START + timedelta(hours=4)
-    assert after_replay == after_log
-    assert after_undo == builders.EXAMPLE_START + timedelta(hours=5)
+    assert after_read == 0
+    assert after_log == 1
+    assert after_replay == 1
+    assert after_undo == 2
 
 
 async def test_a_days_logs_are_newest_first_with_undone_ones(sign_in, db):

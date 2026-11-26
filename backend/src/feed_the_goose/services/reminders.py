@@ -1,9 +1,11 @@
 """Reminder preferences, and the worker's two jobs: planning and sending
 (TDD §5.9, PRD S14).
 
-The worker learns that a chase changed through the database: every write that can
-change one sets `users.chase_changed_at`, and planning sets `reminders_planned_at`
-to the latest change or day start it covered.
+The worker learns that a chase changed through the database: every write that
+changes one raises `users.chase_version` under the user's lock, and planning
+stores the version it read under that lock in `reminders_planned_version` and the
+day start it covered in `reminders_planned_at`. A counter, unlike a time read
+before the lock, cannot fall behind the last plan.
 """
 
 from dataclasses import dataclass
@@ -110,7 +112,7 @@ class ReminderService:
         last = user.reminders_planned_at
         if not user.reminders_enabled or not (
             last is None
-            or (user.chase_changed_at is not None and user.chase_changed_at > last)
+            or user.chase_version != user.reminders_planned_version
             or (current is not None and current.starts_at > last)
         ):
             return False
@@ -149,12 +151,8 @@ class ReminderService:
                 date=current.date.isoformat(),
                 due={r.kind.value: r.due_at.isoformat() for r in reminders},
             )
-        # The change and the day this plan covers, not the worker's clock: a write
-        # that read its clock before waiting for this lock has a later change.
-        covered = (user.chase_changed_at, current.starts_at if current else None)
-        user.reminders_planned_at = max(
-            (t for t in covered if t is not None), default=now
-        )
+        user.reminders_planned_version = user.chase_version
+        user.reminders_planned_at = current.starts_at if current else now
         return True
 
     async def send_due(self) -> int:

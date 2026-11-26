@@ -52,7 +52,6 @@ async def seed(body: SeedRequest, request: Request) -> Seeded:
                 public=False,
                 reminders_enabled=False,
                 reminder_lead_below=wired.settings.reminder_lead_below,
-                chase_changed_at=now,
                 created_at=now,
             )
         )

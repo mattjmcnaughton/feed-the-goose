@@ -13,6 +13,7 @@ New York and worked out by hand:
 
 import asyncio
 import uuid
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -24,6 +25,7 @@ from feed_the_goose import worker
 from feed_the_goose.models import PushJob, User
 from feed_the_goose.push.recording import RecordingSender
 from feed_the_goose.services.days import DaysService
+from feed_the_goose.services.logs import LogService, NewLog
 from feed_the_goose.services.reminders import ReminderService
 from tests.conftest import NOW
 
@@ -135,6 +137,57 @@ async def test_a_change_stamped_before_a_pass_but_saved_after_it_is_planned(
 
     assert await wired.reminders.run_pass() == (1, 0)
     assert due(await jobs(wired, account.user_id))[LEAD_LOW] == local(20, 48)
+
+
+class HeldDays(DaysService):
+    """Holds each transaction until `go` is set, as a request delayed between
+    reading its clock and taking the user's lock would be."""
+
+    def __init__(self, wired) -> None:
+        super().__init__(settings=wired.settings, sessions=wired.sessions)
+        self.waiting, self.go = asyncio.Event(), asyncio.Event()
+
+    @asynccontextmanager
+    async def transaction(self, user_id, now):
+        self.waiting.set()
+        await self.go.wait()
+        async with super().transaction(user_id, now) as opened:
+            yield opened
+
+
+async def test_two_overlapping_logs_are_both_planned(wired, account, clock):
+    # Log A of 5 Pushups reads its clock at 10:01 and is held before the lock. Log
+    # B of 10 reads 10:05, saves, and the worker plans it at 10:05. Then A saves.
+    held = HeldDays(wired)
+    slow = LogService(
+        settings=wired.settings, clock=clock, days=held, chase=wired.chase
+    )
+    clock.set(NOW + timedelta(minutes=1))
+    a = asyncio.create_task(
+        slow.create(
+            account.user_id,
+            NewLog(
+                id=uuid.uuid4(),
+                habit_id=uuid.UUID(account.habit_id),
+                amount=5,
+                logged_at=clock.now(),
+                source="app",
+            ),
+        )
+    )
+    await held.waiting.wait()
+    clock.set(NOW + timedelta(minutes=5))
+    await log(account, 10, clock.now())
+    assert await wired.reminders.run_pass() == (1, 0)
+    held.go.set()
+    await a
+
+    assert await wired.reminders.run_pass() == (1, 0)
+    # 10 + 20 steps: the lead falls below 60 after 70 / (100/18) = 12.6 hours.
+    assert due(await jobs(wired, account.user_id)) == {
+        LEAD_LOW: local(22, 36),
+        DAY_END: local(23),
+    }
 
 
 async def test_preferences_round_trip_and_turning_them_off_drops_unsent_reminders(

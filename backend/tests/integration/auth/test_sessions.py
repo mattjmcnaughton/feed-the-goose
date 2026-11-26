@@ -205,3 +205,20 @@ async def test_two_simultaneous_first_sign_ins_make_one_account(
 
     assert [r.status_code for r in responses] == [201, 201]
     assert len({r.json()["user"]["id"] for r in responses}) == 1
+
+
+async def test_sign_in_during_the_night_keeps_a_pending_day_pending(
+    client, settings, clock, sign_in, email
+):
+    """At 01:00 local on 2026-11-27 the current day is still 2026-11-26, so a change
+    effective from 2026-11-27 has not started and is still pending."""
+    user = await sign_in(email)
+    changed = await user.client.patch("/v1/me", json={"day_end": "01:00"})
+    assert changed.json()["pending"]["effective_from"] == "2026-11-27"
+    clock.set(clock.now() + timedelta(hours=15))  # 2026-11-27T06:00Z, 01:00 local
+
+    response = await _session(client, await _identity_token(client, email))
+
+    user_body = response.json()["user"]
+    assert (user_body["day_end"], user_body["pending"]["day_end"]) == ("00:00", "01:00")
+    assert user_body == (await user.client.get("/v1/me")).json()

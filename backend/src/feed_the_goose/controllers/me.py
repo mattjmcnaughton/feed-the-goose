@@ -31,7 +31,7 @@ def _problems() -> Generator[None]:
 
 async def get_me(accounts: AccountService, principal: Principal) -> User:
     with _problems():
-        return _user(await accounts.get(principal))
+        return user_dto(await accounts.get(principal))
 
 
 async def update_me(
@@ -45,7 +45,7 @@ async def update_me(
         day_end=_time(body.day_end),
     )
     with _problems():
-        return _user(await accounts.update(principal, changes))
+        return user_dto(await accounts.update(principal, changes))
 
 
 async def delete_me(accounts: AccountService, principal: Principal) -> None:
@@ -61,7 +61,7 @@ def _hhmm(value: time) -> str:
     return value.strftime("%H:%M")
 
 
-def _user(account: Account) -> User:
+def user_dto(account: Account) -> User:
     user, current, pending = account.user, account.current, account.pending
     return User(
         id=user.id,

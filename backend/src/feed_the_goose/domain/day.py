@@ -73,7 +73,9 @@ def day_window(
     pace = steps_per_day / hours_between(scheduled_start, ends_at)
     starts_at = scheduled_start
     if not_before is not None:
-        starts_at = min(max(starts_at, not_before.astimezone(UTC)), ends_at)
+        # A start past the scheduled end leaves a day with no time in it.
+        starts_at = max(starts_at, not_before.astimezone(UTC))
+        ends_at = max(ends_at, starts_at)
     return DayWindow(
         date=day, starts_at=starts_at, ends_at=ends_at, steps_per_hour=pace
     )

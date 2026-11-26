@@ -141,7 +141,7 @@ struct TodayView: View {
 	private func habits(_ chase: Chase) -> some View {
 		VStack(spacing: 0) {
 			ForEach(chase.habits) { habit in
-				HabitRow(habit: habit, state: chase.state) { amount in
+				TodayHabitRow(habit: habit, state: chase.state) { amount in
 					await model.log(habit, amount: amount)
 				}
 				if habit.id != chase.habits.last?.id {
@@ -175,7 +175,7 @@ struct TodayView: View {
 }
 
 /// One habit: its progress, a chunk button, a finish button, and another amount on demand.
-struct HabitRow: View {
+struct TodayHabitRow: View {
 	let habit: ChaseHabit
 	let state: ChaseState
 	let log: (Int) async -> Void

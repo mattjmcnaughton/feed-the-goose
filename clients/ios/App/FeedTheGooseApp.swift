@@ -5,6 +5,8 @@ import WidgetKit
 @main
 struct FeedTheGooseApp: App {
 	private let environment = LiveEnvironment.make()
+	/// Receives the push token (TDD §6.9, `App/Push/`).
+	@UIApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
 
 	init() {
 		#if DEBUG

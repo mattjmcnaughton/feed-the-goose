@@ -8,6 +8,10 @@ public actor FixtureServices: AuthService, AccountService, HabitService, LogServ
 	private var habitList: [Habit]
 	private var logs: [LogEntry]
 	private var results: [UUID: LogResult] = [:]
+	private var accountState: Account = Fixtures.response("me-get")
+	private var keyList: [Key] = Fixtures.response("keys-list")
+	private var profile = ProfileSettings(handle: "matt", isPublic: false)
+	private var reminderState: Reminders = Fixtures.response("reminders-get")
 
 	/// Starts from `chase`, such as the one another process cached, or the example day's chase.
 	/// A fresh account has no habits and no logs yet, as after a first sign-in.
@@ -28,24 +32,58 @@ public actor FixtureServices: AuthService, AccountService, HabitService, LogServ
 
 	// MARK: AccountService
 
-	public func account() async throws -> Account { Fixtures.response("me-get") }
-	public func updateAccount(_ changes: AccountChanges) async throws -> Account { Fixtures.response("me-update") }
+	// The account, the keys, the profile and the reminders keep what was last saved, so Settings
+	// can be driven without a server. A day change waits under `pending` for tomorrow, as on the
+	// server. The profile starts off, and the handle "taken" belongs to someone else.
+
+	public func account() async throws -> Account { accountState }
+
+	public func updateAccount(_ changes: AccountChanges) async throws -> Account {
+		let base = accountState.pending.map { ($0.timeZone, $0.dayStart, $0.dayEnd) }
+			?? (accountState.timeZone, accountState.dayStart, accountState.dayEnd)
+		let wanted = (changes.timeZone ?? base.0, changes.dayStart ?? base.1, changes.dayEnd ?? base.2)
+		if wanted == (accountState.timeZone, accountState.dayStart, accountState.dayEnd) {
+			accountState.pending = nil
+		} else {
+			accountState.pending = PendingDay(effectiveFrom: Self.dayAfter(chase.date), timeZone: wanted.0, dayStart: wanted.1, dayEnd: wanted.2)
+		}
+		accountState.displayName = changes.displayName ?? accountState.displayName
+		return accountState
+	}
+
 	public func deleteAccount() async throws {}
 
-	public func keys() async throws -> [Key] { Fixtures.response("keys-list") }
-	public func createKey(kind: KeyKind, name: String) async throws -> NewKey { Fixtures.response("keys-create") }
-	public func deleteKey(id: UUID) async throws {}
+	public func keys() async throws -> [Key] { keyList }
 
-	public func profileSettings() async throws -> ProfileSettings { Fixtures.response("profile-get") }
+	public func createKey(kind: KeyKind, name: String) async throws -> NewKey {
+		let fixture: NewKey = Fixtures.response("keys-create")
+		let key = Key(id: .v7(), kind: kind, name: name, createdAt: chase.asOf, lastUsedAt: nil)
+		keyList.append(key)
+		return NewKey(key: key, secret: fixture.secret)
+	}
+
+	public func deleteKey(id: UUID) async throws {
+		guard keyList.contains(where: { $0.id == id }) else { throw APIError.notFound }
+		keyList.removeAll { $0.id == id }
+	}
+
+	public func profileSettings() async throws -> ProfileSettings { profile }
 
 	public func updateProfileSettings(handle: String, isPublic: Bool) async throws -> ProfileSettings {
-		Fixtures.response("profile-update")
+		if handle == "taken" { throw APIError.handleTaken }
+		profile = ProfileSettings(handle: handle, isPublic: isPublic)
+		return profile
 	}
 
 	public func publicProfile(handle: String) async throws -> PublicProfile { Fixtures.response("public-profile-get") }
 
-	public func reminders() async throws -> Reminders { Fixtures.response("reminders-get") }
-	public func updateReminders(_ reminders: Reminders) async throws -> Reminders { reminders }
+	public func reminders() async throws -> Reminders { reminderState }
+
+	public func updateReminders(_ reminders: Reminders) async throws -> Reminders {
+		reminderState = reminders
+		return reminders
+	}
+
 	public func registerDevice(installationID: UUID, _ registration: DeviceRegistration) async throws {}
 	public func deleteDevice(installationID: UUID) async throws {}
 

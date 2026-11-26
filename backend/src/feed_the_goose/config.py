@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # Credentials (API spec "Credentials").
     session_lifetime_days: int = 90
 
+    # Auth0 (TDD §5.6). No tenant exists yet, so its verifier is off until the
+    # issuer is set. It must match the tokens' `iss` exactly, including Auth0's
+    # trailing slash: https://example.us.auth0.com/.
+    auth0_issuer: str | None = None
+    auth0_audience: str = "https://feed-the-goose.mattjmcnaughton.com/v1"
+
     # Reminders (TDD §5.9).
     reminder_lead_below: int = 30
     reminder_before_seconds: int = 3600

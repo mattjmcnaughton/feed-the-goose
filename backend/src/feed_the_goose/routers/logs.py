@@ -7,13 +7,16 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from feed_the_goose.deps import session_or_api_key
 from feed_the_goose.dtos.errors import ProblemType as P
 from feed_the_goose.dtos.logs import Log, LogCreate, LogResult
 from feed_the_goose.errors import not_implemented, problems
 
-router = APIRouter(prefix="/v1/logs", tags=["logs"])
+router = APIRouter(
+    prefix="/v1/logs", tags=["logs"], dependencies=[Depends(session_or_api_key)]
+)
 
 
 @router.post(

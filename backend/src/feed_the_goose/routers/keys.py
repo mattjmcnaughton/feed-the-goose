@@ -5,13 +5,16 @@ A stub from T02: each route answers 501 `not_implemented` until T07 lands.
 
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 
+from feed_the_goose.deps import session_only
 from feed_the_goose.dtos.errors import ProblemType as P
 from feed_the_goose.dtos.keys import Key, KeyCreate, KeyCreated
 from feed_the_goose.errors import not_implemented, problems
 
-router = APIRouter(prefix="/v1/me/keys", tags=["keys"])
+router = APIRouter(
+    prefix="/v1/me/keys", tags=["keys"], dependencies=[Depends(session_only)]
+)
 
 
 @router.get("", operation_id="listKeys", responses=problems(P.unauthenticated))

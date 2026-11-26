@@ -6,8 +6,9 @@ import Foundation
 public actor FixtureServices: AuthService, AccountService, HabitService, LogService, ChaseService {
 	private var chase: Chase
 
-	public init() {
-		chase = Fixtures.response("example-day-07-chase")
+	/// Starts from `chase`, such as the one another process cached, or the example day's chase.
+	public init(chase: Chase? = nil) {
+		self.chase = chase ?? Fixtures.response("example-day-07-chase")
 	}
 
 	// MARK: AuthService
@@ -51,26 +52,63 @@ public actor FixtureServices: AuthService, AccountService, HabitService, LogServ
 
 	// MARK: LogService
 
-	/// Answers with the example day's first log, carrying the request's own values.
+	/// Counts the log against the fake's current chase, so the chase it returns is newer than the
+	/// one cached and a screen or widget moves. This is a stand-in for the server's rules, good
+	/// enough for fixtures: a habit's share of 100 steps, in proportion to its target, and no
+	/// walking between logs. A repeated ID returns the same log, as the server does.
 	public func createLog(_ request: LogRequest) async throws -> LogResult {
-		var result: LogResult = Fixtures.response("example-day-01-log-pushups")
-		result.log.id = request.id
-		result.log.habitID = request.habitID
-		result.log.loggedAt = request.loggedAt
-		result.log.source = request.source
-		result.event.habitID = request.habitID
-		chase = result.chase
+		if let existing = results[request.id] { return existing }
+		guard let index = chase.habits.firstIndex(where: { $0.habitID == request.habitID }) else { throw APIError.notFound }
+		let habit = chase.habits[index]
+		let amount = request.amount ?? habit.chunk
+		let counted = min(amount, max(0, habit.target - habit.logged))
+		let steps = Self.tenths(100 / Double(chase.habits.count) * Double(counted) / Double(habit.target))
+		let log = LogEntry(
+			id: request.id, habitID: request.habitID, amount: amount, loggedAt: request.loggedAt,
+			source: request.source, date: chase.date, steps: steps, undoneAt: nil
+		)
+		chase.habits[index].logged += amount
+		chase.habits[index].done = chase.habits[index].logged >= habit.target
+		let completes = move(habit: index, by: steps)
+		logs.insert(log, at: 0)
+		let result = LogResult(log: log, event: ChaseEvent(kind: completes ? .complete : .gain, habitID: request.habitID, steps: steps), chase: chase)
+		results[request.id] = result
 		return result
 	}
 
 	public func undoLog(id: UUID) async throws -> LogResult {
-		var result: LogResult = Fixtures.response("example-day-06-undo-reading")
-		result.log.id = id
-		chase = result.chase
-		return result
+		guard let index = logs.firstIndex(where: { $0.id == id && $0.undoneAt == nil }),
+		      let habit = chase.habits.firstIndex(where: { $0.habitID == logs[index].habitID })
+		else { throw APIError.notFound }
+		logs[index].undoneAt = chase.asOf
+		let log = logs[index]
+		chase.habits[habit].logged -= log.amount
+		chase.habits[habit].done = chase.habits[habit].logged >= chase.habits[habit].target
+		move(habit: habit, by: -log.steps)
+		return LogResult(log: log, event: ChaseEvent(kind: .undone, habitID: log.habitID, steps: log.steps), chase: chase)
 	}
 
-	public func logs(on date: LocalDate) async throws -> [LogEntry] { Fixtures.response("example-day-08-logs") }
+	public func logs(on date: LocalDate) async throws -> [LogEntry] { logs }
+
+	private var logs: [LogEntry] = Fixtures.response("example-day-08-logs")
+	private var results: [UUID: LogResult] = [:]
+
+	/// Moves the lead and the habit's steps, advances `asOf`, and settles whether the day is
+	/// complete. Returns true when this change completed it.
+	@discardableResult
+	private func move(habit index: Int, by steps: Double) -> Bool {
+		let wasComplete = chase.state == .complete
+		chase.habits[index].steps = Self.tenths(chase.habits[index].steps + steps)
+		chase.lead = Self.tenths(chase.lead + steps)
+		chase.earned = Self.tenths(chase.earned + steps)
+		chase.asOf += 1
+		let complete = chase.habits.allSatisfy(\.done)
+		chase.state = complete ? .complete : .running
+		chase.streak.completeDays += (complete ? 1 : 0) - (wasComplete ? 1 : 0)
+		return complete && !wasComplete
+	}
+
+	private static func tenths(_ value: Double) -> Double { (value * 10).rounded() / 10 }
 
 	// MARK: ChaseService
 

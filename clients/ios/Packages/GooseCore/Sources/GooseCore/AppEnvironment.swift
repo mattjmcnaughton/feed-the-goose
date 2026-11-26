@@ -43,10 +43,12 @@ public struct AppEnvironment: Sendable {
 	/// The fake environment, signed in, with the fixtures' habits and chase already cached in
 	/// `shared`, so a widget reading the App Group sees them too.
 	public static func fake(shared: SharedStore, reloadWidgets: @escaping @Sendable () -> Void = {}) -> AppEnvironment {
-		let services = FixtureServices()
 		if shared.chaseSnapshot == nil {
 			shared.setChaseSnapshot(ChaseSnapshot(chase: Fixtures.response("example-day-07-chase"), receivedAt: Date()))
 		}
+		// The app, the widget extension and the intents each build their own fake. Starting from
+		// the cached chase keeps a log made in one process when another one fetches.
+		let services = FixtureServices(chase: shared.chaseSnapshot?.chase)
 		if shared.habits == nil {
 			shared.setHabits(Fixtures.response("habits-list"))
 		}

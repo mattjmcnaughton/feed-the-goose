@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +53,14 @@ class InstallationRepository:
             .order_by(Installation.created_at)
         )
         return list(rows)
+
+    async def clear_apns_token(self, row_id: UUID, token: str) -> None:
+        """Forget a token APNs refused, unless the app has sent a new one since."""
+        await self._session.execute(
+            update(Installation)
+            .where(Installation.id == row_id, Installation.apns_token == token)
+            .values(apns_token=None)
+        )
 
     async def delete(self, user_id: UUID, installation_id: str) -> None:
         await self._session.execute(

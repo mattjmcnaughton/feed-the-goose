@@ -6,7 +6,7 @@ Tickets add their own registration lines here and nothing else.
 from fastapi import APIRouter
 
 from feed_the_goose.config import Settings
-from feed_the_goose.dev import seed, token
+from feed_the_goose.dev import pushes, seed, token
 
 
 def router(settings: Settings) -> APIRouter | None:
@@ -17,4 +17,5 @@ def router(settings: Settings) -> APIRouter | None:
     if settings.dev_sign_in_enabled:
         dev.include_router(token.router)
     dev.include_router(seed.router)
+    dev.include_router(pushes.router)
     return dev

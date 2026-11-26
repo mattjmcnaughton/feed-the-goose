@@ -1,16 +1,18 @@
-"""Device registration (API spec "Devices and push").
+"""Device registration (API spec "Devices and push")."""
 
-A stub from T02: each route answers 501 `not_implemented` until T09 lands.
-"""
-
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
 
-from feed_the_goose.deps import session_or_api_key
+from feed_the_goose.controllers import devices as controller
+from feed_the_goose.deps import ApiPrincipal, session_or_api_key, wiring
 from feed_the_goose.dtos.devices import DeviceRegistration
 from feed_the_goose.dtos.errors import ProblemType as P
-from feed_the_goose.errors import not_implemented, problems
+from feed_the_goose.errors import problems
+from feed_the_goose.wiring import Wiring
+
+WiringDep = Annotated[Wiring, Depends(wiring)]
 
 router = APIRouter(
     prefix="/v1/me/devices",
@@ -26,9 +28,14 @@ router = APIRouter(
     operation_id="registerDevice",
     responses=problems(P.unauthenticated, P.invalid),
 )
-async def register_device(installation_id: UUID, body: DeviceRegistration) -> None:
+async def register_device(
+    installation_id: UUID,
+    body: DeviceRegistration,
+    principal: ApiPrincipal,
+    w: WiringDep,
+) -> None:
     """Register or refresh this installation's push tokens."""
-    raise not_implemented()
+    await controller.register_device(w.installations, principal, installation_id, body)
 
 
 @router.delete(
@@ -38,5 +45,7 @@ async def register_device(installation_id: UUID, body: DeviceRegistration) -> No
     operation_id="deleteDevice",
     responses=problems(P.unauthenticated, P.invalid),
 )
-async def delete_device(installation_id: UUID) -> None:
-    raise not_implemented()
+async def delete_device(
+    installation_id: UUID, principal: ApiPrincipal, w: WiringDep
+) -> None:
+    await controller.delete_device(w.installations, principal, installation_id)

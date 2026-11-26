@@ -1,14 +1,17 @@
-"""Reminder preferences (API spec "Devices and push").
+"""Reminder preferences (API spec "Devices and push")."""
 
-A stub from T02: each route answers 501 `not_implemented` until T09 lands.
-"""
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from feed_the_goose.deps import session_or_api_key
+from feed_the_goose.controllers import reminders as controller
+from feed_the_goose.deps import ApiPrincipal, session_or_api_key, wiring
 from feed_the_goose.dtos.devices import Reminders
 from feed_the_goose.dtos.errors import ProblemType as P
-from feed_the_goose.errors import not_implemented, problems
+from feed_the_goose.errors import problems
+from feed_the_goose.wiring import Wiring
+
+WiringDep = Annotated[Wiring, Depends(wiring)]
 
 router = APIRouter(
     prefix="/v1/me/reminders",
@@ -18,8 +21,8 @@ router = APIRouter(
 
 
 @router.get("", operation_id="getReminders", responses=problems(P.unauthenticated))
-async def get_reminders() -> Reminders:
-    raise not_implemented()
+async def get_reminders(principal: ApiPrincipal, w: WiringDep) -> Reminders:
+    return await controller.get_reminders(w.reminders, principal)
 
 
 @router.put(
@@ -27,5 +30,7 @@ async def get_reminders() -> Reminders:
     operation_id="updateReminders",
     responses=problems(P.unauthenticated, P.invalid),
 )
-async def update_reminders(body: Reminders) -> Reminders:
-    raise not_implemented()
+async def update_reminders(
+    body: Reminders, principal: ApiPrincipal, w: WiringDep
+) -> Reminders:
+    return await controller.update_reminders(w.reminders, principal, body)

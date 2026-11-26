@@ -209,6 +209,18 @@ async def test_preferences_round_trip_and_turning_them_off_drops_unsent_reminder
     assert await wired.reminders.run_pass() == (0, 0)
 
 
+async def test_preferences_without_quiet_hours_mean_none(wired, account, clock):
+    # The contract marks `quiet_hours` optional, and the app's generated client leaves
+    # a nil one out of the body instead of sending null.
+    saved = await account.rest.put(
+        "/v1/me/reminders", json={"enabled": True, "when_lead_below": 40}
+    )
+    assert saved.status_code == 200, saved.text
+    expected = {"enabled": True, "when_lead_below": 40, "quiet_hours": None}
+    assert saved.json() == expected
+    assert (await account.rest.get("/v1/me/reminders")).json() == expected
+
+
 async def test_a_deleted_installation_gets_nothing(wired, account, clock):
     deleted = await account.rest.delete(f"/v1/me/devices/{account.installation_id}")
     assert deleted.status_code == 204

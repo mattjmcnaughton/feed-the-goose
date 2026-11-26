@@ -156,6 +156,8 @@ def case_06() -> None:
     assert state.state is DayState.CAUGHT
     assert state.caught_at == local(26, 9, 36)
     assert one(state.lead) == "0.0"
+    assert one(state.walked) == "20.0"
+    assert one(state.earned) == "0.0"
 
 
 def case_07() -> None:
@@ -225,6 +227,7 @@ def case_12() -> None:
     state = chase(logs, night)
 
     assert state.state is DayState.COMPLETE
+    assert outcome(state, "c")[0] is EventKind.COMPLETE
     assert starting_lead_after(state.state, state.lead, full_lead=FULL_LEAD) == 100
 
 

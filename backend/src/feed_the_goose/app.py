@@ -8,6 +8,7 @@ from feed_the_goose import errors, wiring
 from feed_the_goose.config import settings
 from feed_the_goose.dev import routes as dev_routes
 from feed_the_goose.logging import configure_logging
+from feed_the_goose.mcp import server as mcp_server
 from feed_the_goose.routers import (
     auth,
     chase,
@@ -28,7 +29,8 @@ from feed_the_goose.routers import (
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     configure_logging()
-    yield
+    async with app.state.mcp.lifespan(app.state.mcp):
+        yield
 
 
 def create_app(wired: wiring.Wiring | None = None) -> FastAPI:
@@ -45,6 +47,7 @@ def create_app(wired: wiring.Wiring | None = None) -> FastAPI:
     )
 
     app.state.wiring = wired
+    app.state.mcp = mcp_server.create_app(wired)
     app.include_router(health.router)
 
     errors.install(app)
@@ -61,6 +64,7 @@ def create_app(wired: wiring.Wiring | None = None) -> FastAPI:
     app.include_router(reminders.router)
     if (dev := dev_routes.router(wired.settings)) is not None:
         app.include_router(dev)
+    app.add_middleware(mcp_server.MountMCP, mcp=app.state.mcp)
 
     return app
 

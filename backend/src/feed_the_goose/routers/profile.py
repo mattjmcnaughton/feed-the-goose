@@ -1,14 +1,17 @@
-"""Profile settings (API spec "Public profile").
+"""Profile settings (API spec "Public profile")."""
 
-A stub from T02: each route answers 501 `not_implemented` until T08 lands.
-"""
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from feed_the_goose.deps import session_or_api_key
+from feed_the_goose.controllers import profile as controller
+from feed_the_goose.deps import ApiPrincipal, session_or_api_key, wiring
 from feed_the_goose.dtos.errors import ProblemType as P
 from feed_the_goose.dtos.profile import ProfileSettings, ProfileUpdate
-from feed_the_goose.errors import not_implemented, problems
+from feed_the_goose.errors import problems
+from feed_the_goose.wiring import Wiring
+
+WiringDep = Annotated[Wiring, Depends(wiring)]
 
 router = APIRouter(
     prefix="/v1/me/profile",
@@ -20,8 +23,10 @@ router = APIRouter(
 @router.get(
     "", operation_id="getProfileSettings", responses=problems(P.unauthenticated)
 )
-async def get_profile_settings() -> ProfileSettings:
-    raise not_implemented()
+async def get_profile_settings(
+    principal: ApiPrincipal, w: WiringDep
+) -> ProfileSettings:
+    return await controller.get_settings(w.profile, principal.user_id)
 
 
 @router.put(
@@ -29,5 +34,7 @@ async def get_profile_settings() -> ProfileSettings:
     operation_id="updateProfileSettings",
     responses=problems(P.unauthenticated, P.handle_taken, P.invalid),
 )
-async def update_profile_settings(body: ProfileUpdate) -> ProfileSettings:
-    raise not_implemented()
+async def update_profile_settings(
+    body: ProfileUpdate, principal: ApiPrincipal, w: WiringDep
+) -> ProfileSettings:
+    return await controller.update_settings(w.profile, principal.user_id, body)

@@ -65,6 +65,8 @@ def create_app(wired: wiring.Wiring | None = None) -> FastAPI:
     if (dev := dev_routes.router(wired.settings)) is not None:
         app.include_router(dev)
     app.add_middleware(mcp_server.MountMCP, mcp=app.state.mcp)
+    # Last, so `/{handle}` never shadows another route (TDD §5.8).
+    app.include_router(public.page_router)
 
     return app
 

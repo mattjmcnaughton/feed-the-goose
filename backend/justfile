@@ -1,3 +1,13 @@
+# The Docker command. In an orb the daemon needs sudo: DOCKER="sudo docker".
+docker := env("DOCKER", "docker")
+pg_image := "postgres:16"
+pg_container := "feed-the-goose-postgres"
+pg_port := env("PG_PORT", "5432")
+
+# List recipes
+default:
+    @just --list
+
 # Check formatting
 fmt:
     uv run ruff format --check .
@@ -25,11 +35,11 @@ test-all: test-unit test-integration test-e2e
 test-unit:
     uv run pytest tests/unit
 
-# Run integration tests
+# Run integration tests (needs Postgres: just db-up migrate)
 test-integration:
     uv run pytest tests/integration
 
-# Run e2e tests
+# Run e2e tests (needs Postgres: just db-up migrate)
 test-e2e:
     uv run pytest tests/e2e
 
@@ -45,3 +55,50 @@ gate-expensive: gate test-integration test-e2e
 
 # Everything including external
 gate-external: gate-expensive test-external
+
+# Start Postgres 16 in Docker and wait until it accepts connections
+db-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "$({{ docker }} ps -aq --filter name='^{{ pg_container }}$')" ]; then
+        {{ docker }} start {{ pg_container }} >/dev/null
+    else
+        {{ docker }} run -d --name {{ pg_container }} \
+            -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=feed_the_goose \
+            -p {{ pg_port }}:5432 {{ pg_image }} \
+            -c fsync=off -c synchronous_commit=off -c full_page_writes=off >/dev/null
+    fi
+    for _ in $(seq 60); do
+        if {{ docker }} exec {{ pg_container }} pg_isready -q -h 127.0.0.1 -U postgres -d feed_the_goose; then
+            echo "Postgres is ready on port {{ pg_port }}"
+            exit 0
+        fi
+        sleep 1
+    done
+    echo "Postgres did not become ready" >&2
+    exit 1
+
+# Stop Postgres (its data stays in the container)
+db-down:
+    {{ docker }} stop {{ pg_container }} >/dev/null && echo "Postgres stopped"
+
+# Apply migrations
+migrate:
+    uv run alembic upgrade head
+
+# Serve the API on port 8000 with the development sign-in and /dev routes on
+dev:
+    ENV=development DEV_SIGN_IN_ENABLED=true DEV_ROUTES_ENABLED=true \
+        uv run uvicorn feed_the_goose.app:app --host 0.0.0.0 --port 8000
+
+# Run the reminder worker
+worker:
+    uv run python -m feed_the_goose.worker
+
+# Write clients/openapi.json (added by T02)
+openapi:
+    @echo "not implemented yet: ticket T02 adds the OpenAPI export" >&2; exit 1
+
+# Fail when clients/openapi.json is stale (added by T02)
+openapi-check:
+    @echo "not implemented yet: ticket T02 adds the OpenAPI check" >&2; exit 1

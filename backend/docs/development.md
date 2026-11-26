@@ -10,8 +10,8 @@
 ## Setup
 
 ```sh
-# Install dependencies
-uv sync --dev
+# Install just, uv, Python 3.12 and the locked dependencies
+bash ../.agents/setup
 
 # Copy environment file
 cp .env.example .env
@@ -20,17 +20,20 @@ cp .env.example .env
 ## Database
 
 ```sh
-# Start Postgres
-docker compose up -d
+# Start Postgres 16 in Docker (in an orb: export DOCKER="sudo docker")
+just db-up
 
 # Run migrations
-uv run alembic upgrade head
+just migrate
+
+# Stop Postgres
+just db-down
 ```
 
 ## Running Locally
 
 ```sh
-uv run uvicorn feed_the_goose.app:app --reload
+just dev
 ```
 
 The API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.

@@ -14,24 +14,21 @@ The server that owns the chase for Feed the Goose
 ### Installation
 
 ```sh
-uv sync --dev
+bash ../.agents/setup   # just, uv, Python 3.12 and the locked dependencies
 cp .env.example .env
 ```
 
 ### Database
 
 ```sh
-# Start Postgres
-docker compose up -d
-
-# Run migrations
-uv run alembic upgrade head
+just db-up     # Postgres 16 in Docker; set DOCKER="sudo docker" in an orb
+just migrate
 ```
 
 ### Running
 
 ```sh
-uv run uvicorn feed_the_goose.app:app --reload
+just dev       # http://localhost:8000/healthz and /readyz
 ```
 
 ## Development

@@ -18,6 +18,7 @@ from feed_the_goose.services.auth import AuthService
 from feed_the_goose.services.chase import ChaseService
 from feed_the_goose.services.days import DaysService
 from feed_the_goose.services.habits import HabitService
+from feed_the_goose.services.keys import KeyService
 from feed_the_goose.services.logs import LogService
 
 if TYPE_CHECKING:
@@ -36,6 +37,7 @@ class Wiring:
     habits: HabitService
     chase: ChaseService
     logs: LogService
+    keys: KeyService
     # Present only when the dev sign-in is on, outside production.
     dev_tokens: DevIdentityTokens | None
 
@@ -89,5 +91,6 @@ def build(
         habits=HabitService(settings=settings, clock=clock, sessions=sessions),
         chase=chase,
         logs=LogService(settings=settings, clock=clock, days=days, chase=chase),
+        keys=KeyService(clock=clock, sessions=sessions),
         dev_tokens=dev_tokens,
     )

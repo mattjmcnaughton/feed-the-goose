@@ -1,0 +1,23 @@
+{
+  "name": "habits-update",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1/habits/22222222-2222-4222-8222-000000000004",
+    "body": {
+      "name": "Stretches"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "22222222-2222-4222-8222-000000000004",
+      "name": "Stretches",
+      "unit": "minutes",
+      "target": 15,
+      "chunk": 5,
+      "position": 3,
+      "effective_from": "2026-11-27",
+      "archived_from": null
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Read by scripts/generate-api.sh. The generated types stay inside GooseAPI: the rest of the
+# app sees only GooseCore models.
+generate:
+  - types
+  - client
+accessModifier: package
+namingStrategy: idiomatic

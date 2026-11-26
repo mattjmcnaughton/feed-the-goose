@@ -1,0 +1,16 @@
+{
+  "name": "reminders-get",
+  "request": {
+    "method": "GET",
+    "path": "/v1/me/reminders",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "enabled": false,
+      "when_lead_below": 30,
+      "quiet_hours": null
+    }
+  }
+}

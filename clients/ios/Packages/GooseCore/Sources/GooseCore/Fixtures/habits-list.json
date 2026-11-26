@@ -1,0 +1,43 @@
+{
+  "name": "habits-list",
+  "request": {
+    "method": "GET",
+    "path": "/v1/habits",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": "22222222-2222-4222-8222-000000000001",
+        "name": "Pushups",
+        "unit": "reps",
+        "target": 50,
+        "chunk": 10,
+        "position": 0,
+        "effective_from": "2026-10-22",
+        "archived_from": null
+      },
+      {
+        "id": "22222222-2222-4222-8222-000000000002",
+        "name": "Workout",
+        "unit": "minutes",
+        "target": 30,
+        "chunk": 10,
+        "position": 1,
+        "effective_from": "2026-10-22",
+        "archived_from": null
+      },
+      {
+        "id": "22222222-2222-4222-8222-000000000003",
+        "name": "Reading",
+        "unit": "pages",
+        "target": 20,
+        "chunk": 5,
+        "position": 2,
+        "effective_from": "2026-10-22",
+        "archived_from": null
+      }
+    ]
+  }
+}

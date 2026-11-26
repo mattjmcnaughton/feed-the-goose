@@ -1,0 +1,19 @@
+{
+  "name": "error-handle-taken",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/me/profile",
+    "body": {
+      "handle": "taken-handle",
+      "public": true
+    }
+  },
+  "response": {
+    "status": 409,
+    "body": {
+      "type": "handle_taken",
+      "title": "That handle is taken",
+      "status": 409
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "devices-register",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/me/devices/55555555-5555-4555-8555-000000000001",
+    "body": {
+      "apns_token": "fixture-apns-token-0000000000000000",
+      "widget_push_token": null,
+      "environment": "sandbox",
+      "app_version": "1.0 (1)"
+    }
+  },
+  "response": {
+    "status": 204,
+    "body": null
+  }
+}

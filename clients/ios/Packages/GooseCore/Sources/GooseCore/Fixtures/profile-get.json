@@ -1,0 +1,15 @@
+{
+  "name": "profile-get",
+  "request": {
+    "method": "GET",
+    "path": "/v1/me/profile",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "handle": "matt",
+      "public": true
+    }
+  }
+}

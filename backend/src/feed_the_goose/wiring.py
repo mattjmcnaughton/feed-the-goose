@@ -13,14 +13,18 @@ from feed_the_goose.clock import Clock, SystemClock
 from feed_the_goose.config import Settings
 from feed_the_goose.identity.auth0 import Auth0Verifier
 from feed_the_goose.identity.dev import DevIdentityTokens, check_development_guard
+from feed_the_goose.push import sender_from
+from feed_the_goose.push.config import PushSettings
 from feed_the_goose.services.accounts import AccountService, NoIdentityAdmin
 from feed_the_goose.services.auth import AuthService
 from feed_the_goose.services.chase import ChaseService
 from feed_the_goose.services.days import DaysService
 from feed_the_goose.services.habits import HabitService
+from feed_the_goose.services.installations import InstallationService
 from feed_the_goose.services.keys import KeyService
 from feed_the_goose.services.logs import LogService
 from feed_the_goose.services.profile import ProfileService
+from feed_the_goose.services.reminders import ReminderService
 
 if TYPE_CHECKING:
     from feed_the_goose.identity import IdentityVerifier
@@ -40,6 +44,9 @@ class Wiring:
     logs: LogService
     keys: KeyService
     profile: ProfileService
+    installations: InstallationService
+    reminders: ReminderService
+    push: PushSettings
     # Present only when the dev sign-in is on, outside production.
     dev_tokens: DevIdentityTokens | None
 
@@ -76,6 +83,7 @@ def build(
 
     days = DaysService(settings=settings, sessions=sessions)
     chase = ChaseService(settings=settings, clock=clock, days=days)
+    push = PushSettings()
 
     return Wiring(
         settings=settings,
@@ -95,5 +103,15 @@ def build(
         logs=LogService(settings=settings, clock=clock, days=days, chase=chase),
         keys=KeyService(clock=clock, sessions=sessions),
         profile=ProfileService(clock=clock, sessions=sessions, days=days, chase=chase),
+        installations=InstallationService(clock=clock, sessions=sessions),
+        reminders=ReminderService(
+            settings=settings,
+            push=push,
+            clock=clock,
+            sessions=sessions,
+            days=days,
+            sender=sender_from(push, clock=clock, sessions=sessions),
+        ),
+        push=push,
         dev_tokens=dev_tokens,
     )

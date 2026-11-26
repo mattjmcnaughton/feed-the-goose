@@ -1,26 +1,26 @@
-"""Habits (API spec "Habits").
+"""Habits (API spec "Habits")."""
 
-A stub from T02: each route answers 501 `not_implemented` until T05 lands.
-"""
-
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from feed_the_goose.deps import session_or_api_key
+from feed_the_goose.controllers import habits as controller
+from feed_the_goose.deps import ApiPrincipal, wiring
 from feed_the_goose.dtos.errors import ProblemType as P
 from feed_the_goose.dtos.habits import Habit, HabitCreate, HabitUpdate
-from feed_the_goose.errors import not_implemented, problems
+from feed_the_goose.errors import problems
+from feed_the_goose.wiring import Wiring
 
-router = APIRouter(
-    prefix="/v1/habits", tags=["habits"], dependencies=[Depends(session_or_api_key)]
-)
+router = APIRouter(prefix="/v1/habits", tags=["habits"])
+
+WiringDep = Annotated[Wiring, Depends(wiring)]
 
 
 @router.get("", operation_id="listHabits", responses=problems(P.unauthenticated))
-async def list_habits() -> list[Habit]:
+async def list_habits(principal: ApiPrincipal, w: WiringDep) -> list[Habit]:
     """Active and upcoming habits."""
-    raise not_implemented()
+    return await controller.list_habits(w.habits, principal)
 
 
 @router.post(
@@ -29,8 +29,12 @@ async def list_habits() -> list[Habit]:
     operation_id="createHabit",
     responses=problems(P.unauthenticated, P.invalid),
 )
-async def create_habit(body: HabitCreate) -> Habit:
-    raise not_implemented()
+async def create_habit(
+    body: HabitCreate, principal: ApiPrincipal, w: WiringDep
+) -> Habit:
+    return await controller.create_habit(
+        w.habits, principal, body, w.settings.max_habits
+    )
 
 
 @router.patch(
@@ -38,8 +42,10 @@ async def create_habit(body: HabitCreate) -> Habit:
     operation_id="updateHabit",
     responses=problems(P.unauthenticated, P.not_found, P.invalid),
 )
-async def update_habit(habit_id: UUID, body: HabitUpdate) -> Habit:
-    raise not_implemented()
+async def update_habit(
+    habit_id: UUID, body: HabitUpdate, principal: ApiPrincipal, w: WiringDep
+) -> Habit:
+    return await controller.update_habit(w.habits, principal, habit_id, body)
 
 
 @router.delete(
@@ -47,6 +53,6 @@ async def update_habit(habit_id: UUID, body: HabitUpdate) -> Habit:
     operation_id="archiveHabit",
     responses=problems(P.unauthenticated, P.not_found, P.invalid),
 )
-async def archive_habit(habit_id: UUID) -> Habit:
+async def archive_habit(habit_id: UUID, principal: ApiPrincipal, w: WiringDep) -> Habit:
     """Archive a habit from the next day."""
-    raise not_implemented()
+    return await controller.archive_habit(w.habits, principal, habit_id)

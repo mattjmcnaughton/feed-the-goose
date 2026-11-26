@@ -15,9 +15,11 @@ from urllib.parse import urlsplit
 
 import pytest
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
 from feed_the_goose import routers
+from feed_the_goose.app import create_app
 from feed_the_goose.dtos.errors import Problem, ProblemType
 from feed_the_goose.errors import ProblemError
 
@@ -112,6 +114,26 @@ def test_fixture_matches_its_route(name: str):
         assert response["body"] is None
     else:
         _assert_round_trip(response_type, response["body"])
+
+
+@pytest.mark.parametrize(
+    "name", [n for n, f in FIXTURES.items() if f["response"]["status"] != 422]
+)
+def test_the_app_accepts_the_fixture_request(name: str):
+    """Path, query and body all pass the app's own validation."""
+    request = FIXTURES[name]["request"]
+
+    with TestClient(create_app()) as client:
+        response = client.request(
+            request["method"], request["path"], json=request["body"]
+        )
+
+    assert response.status_code not in (405, 422), response.text
+
+
+def test_the_contract_has_no_null_schemas():
+    """swift-openapi-generator cannot decode `anyOf: [X, {type: null}]`."""
+    assert '"type": "null"' not in (CLIENTS / "openapi.json").read_text()
 
 
 @pytest.mark.parametrize(

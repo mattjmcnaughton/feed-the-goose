@@ -4,11 +4,11 @@ from uuid import UUID
 
 from pydantic import Field
 
-from feed_the_goose.dtos.common import Dto, Instant
+from feed_the_goose.dtos.common import Dto, Instant, RequestDto
 from feed_the_goose.dtos.me import User
 
 
-class SessionCreate(Dto):
+class SessionCreate(RequestDto):
     """An identity token to swap for an app session."""
 
     auth0_access_token: str = Field(min_length=1)

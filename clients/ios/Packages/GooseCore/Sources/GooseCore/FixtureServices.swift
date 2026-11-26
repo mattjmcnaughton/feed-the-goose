@@ -1,14 +1,20 @@
 import Foundation
 
 /// Services that answer from the fixtures, for previews, tests and `-FTGUseFixtures`. Logging
-/// and undoing change the chase that `today()` returns, so a screen can be driven through a
-/// log without a server.
+/// and undoing change the chase that `today()` returns, and adding, editing and archiving
+/// change the habits, so a screen can be driven without a server.
 public actor FixtureServices: AuthService, AccountService, HabitService, LogService, ChaseService {
 	private var chase: Chase
+	private var habitList: [Habit]
+	private var logs: [LogEntry]
+	private var results: [UUID: LogResult] = [:]
 
 	/// Starts from `chase`, such as the one another process cached, or the example day's chase.
-	public init(chase: Chase? = nil) {
+	/// A fresh account has no habits and no logs yet, as after a first sign-in.
+	public init(chase: Chase? = nil, freshAccount: Bool = false) {
 		self.chase = chase ?? Fixtures.response("example-day-07-chase")
+		habitList = freshAccount ? [] : Fixtures.response("habits-list")
+		logs = freshAccount ? [] : Fixtures.response("example-day-08-logs")
 	}
 
 	// MARK: AuthService
@@ -45,10 +51,54 @@ public actor FixtureServices: AuthService, AccountService, HabitService, LogServ
 
 	// MARK: HabitService
 
-	public func habits() async throws -> [Habit] { Fixtures.response("habits-list") }
-	public func createHabit(_ draft: HabitDraft) async throws -> Habit { Fixtures.response("habits-create") }
-	public func updateHabit(id: UUID, _ changes: HabitChanges) async throws -> Habit { Fixtures.response("habits-update") }
-	public func archiveHabit(id: UUID) async throws -> Habit { Fixtures.response("habits-archive") }
+	// These follow the API spec's habit rules, with the fixture chase's date as today: a habit
+	// added before the day's first log starts today and otherwise tomorrow, at most 8 habits
+	// belong to a day, archiving takes effect tomorrow, and a moved habit renumbers the rest.
+
+	public func habits() async throws -> [Habit] { habitList }
+
+	public func createHabit(_ draft: HabitDraft) async throws -> Habit {
+		let tomorrow = Self.dayAfter(chase.date)
+		let startsOn = logs.contains { $0.date == chase.date } ? tomorrow : chase.date
+		for day in Set([startsOn, tomorrow]) where habitList.count(where: { Self.belongs($0, to: day) }) >= 8 {
+			throw APIError.invalid([])
+		}
+		let habit = Habit(
+			id: .v7(), name: draft.name, unit: draft.unit, target: draft.target, chunk: draft.chunk,
+			position: (habitList.map(\.position).max() ?? -1) + 1, effectiveFrom: startsOn, archivedFrom: nil
+		)
+		habitList.append(habit)
+		return habit
+	}
+
+	public func updateHabit(id: UUID, _ changes: HabitChanges) async throws -> Habit {
+		guard let index = habitList.firstIndex(where: { $0.id == id }) else { throw APIError.notFound }
+		var habit = habitList[index]
+		habit.name = changes.name ?? habit.name
+		habit.unit = changes.unit ?? habit.unit
+		habit.target = changes.target ?? habit.target
+		habit.chunk = changes.chunk ?? habit.chunk
+		habitList.remove(at: index)
+		habitList.insert(habit, at: changes.position.map { min($0, habitList.count) } ?? index)
+		for position in habitList.indices { habitList[position].position = position }
+		return habitList.first { $0.id == id }!
+	}
+
+	public func archiveHabit(id: UUID) async throws -> Habit {
+		guard let index = habitList.firstIndex(where: { $0.id == id }) else { throw APIError.notFound }
+		if habitList[index].archivedFrom == nil { habitList[index].archivedFrom = Self.dayAfter(chase.date) }
+		return habitList[index]
+	}
+
+	private static func belongs(_ habit: Habit, to day: LocalDate) -> Bool {
+		habit.effectiveFrom <= day && habit.archivedFrom.map { day < $0 } ?? true
+	}
+
+	private static func dayAfter(_ date: LocalDate) -> LocalDate {
+		let style = Date.ISO8601FormatStyle(timeZone: .gmt).year().month().day()
+		guard let day = try? style.parse(date.rawValue) else { return date }
+		return LocalDate(rawValue: (day + 86400).formatted(style))
+	}
 
 	// MARK: LogService
 
@@ -89,9 +139,6 @@ public actor FixtureServices: AuthService, AccountService, HabitService, LogServ
 	}
 
 	public func logs(on date: LocalDate) async throws -> [LogEntry] { logs }
-
-	private var logs: [LogEntry] = Fixtures.response("example-day-08-logs")
-	private var results: [UUID: LogResult] = [:]
 
 	/// Moves the lead and the habit's steps, advances `asOf`, and settles whether the day is
 	/// complete. Returns true when this change completed it.

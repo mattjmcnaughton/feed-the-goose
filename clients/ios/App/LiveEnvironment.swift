@@ -23,7 +23,8 @@ struct LiveEnvironment {
 	/// The server comes from the `FTGAPIBaseURL` Info.plist key. A `-FTGAPIBaseURL <url>` launch
 	/// argument overrides it, because launch arguments sit in front of the app's defaults. In
 	/// debug builds `-FTGUseFixtures` runs the app on the fake environment, built from the
-	/// fixtures, and records that in the App Group so the widgets and the intents follow.
+	/// fixtures, and records that in the App Group so the widgets and the intents follow. With it,
+	/// `-FTGFreshAccount` starts the fake account with no habits, so the app opens on setup.
 	static func make(
 		defaults: UserDefaults = .standard,
 		bundle: Bundle = .main,
@@ -59,7 +60,11 @@ struct LiveEnvironment {
 				let identity: (any IdentityProvider)? = nil
 			#endif
 			return LiveEnvironment(
-				server: server, app: .fake(shared: shared.fixtureStore, reloadWidgets: reloadWidgets),
+				server: server,
+				app: .fake(
+					shared: shared.fixtureStore, freshAccount: arguments.contains("-FTGFreshAccount"),
+					reloadWidgets: reloadWidgets
+				),
 				identity: identity, refusals: refusals, reloadWidgets: reloadWidgets
 			)
 		}

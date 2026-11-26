@@ -1,11 +1,24 @@
 import GooseCore
 import SwiftUI
 
-/// Placeholder; T15 replaces it.
+/// The user's habits after setup, opened from Settings: add, edit, reorder and archive.
 struct HabitsView: View {
-	let environment: AppEnvironment
+	@State private var model: HabitsModel
+
+	init(environment: AppEnvironment) {
+		_model = State(initialValue: HabitsModel(environment: environment))
+	}
+
+	init(model: HabitsModel) {
+		_model = State(initialValue: model)
+	}
 
 	var body: some View {
-		PlaceholderScreen(title: "Habits", ticket: "T15", environment: environment)
+		HabitList(model: model) {
+			EmptyView()
+		}
+		.navigationTitle("Habits")
+		.task { await model.load() }
+		.accessibilityIdentifier("habits")
 	}
 }

@@ -53,7 +53,8 @@ reporting.
   import `GooseAPI`.
 - Third-party Swift packages are pinned with exact versions. Only those in TDD §9 are allowed.
 - Launch arguments: `-FTGAPIBaseURL <url>` (any build); in debug builds `-FTGRigGallery` and
-  `-FTGSharingProbe <value>` (writes the value for the sharing test).
+  `-FTGSharingProbe <value>` (writes the value for the sharing test), and `-FTGUseFixtures`
+  (the fake environment), with `-FTGFreshAccount` for a fake account with no habits.
 
 ## Sharing without a signing team
 

@@ -104,7 +104,7 @@ class LogService:
             if existing is None:
                 row = await self._accept(db, ensured, new, now)
                 if await logs.insert(row):
-                    ensured.user.chase_changed_at = now
+                    ensured.user.chase_version += 1
                     return await self._result(db, ensured, row, at, created=True)
                 # Another user stored this ID while we checked.
                 existing = await logs.get(new.id)
@@ -126,7 +126,7 @@ class LogService:
                 raise DaySettledError
             if log.undone_at is None:
                 log.undone_at = now
-                ensured.user.chase_changed_at = now
+                ensured.user.chase_version += 1
                 await db.flush()
             return await self._result(db, ensured, log, now, created=False)
 

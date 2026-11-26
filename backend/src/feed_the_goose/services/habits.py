@@ -113,14 +113,13 @@ class HabitService:
                 target,
             )
             if starts_today:
-                user.chase_changed_at = now
+                user.chase_version += 1
             return HabitView(habit, target)
 
     async def update(
         self, principal: Principal, habit_id: UUID, changes: HabitChanges
     ) -> HabitView:
         """Rename, re-chunk and reorder now; change the target from the next day."""
-        now = self._clock.now()
         async with self._sessions.begin() as db:
             user = await lock_user(db, principal)
             day = await self._day(db, user.id)
@@ -148,7 +147,7 @@ class HabitService:
                 await repository.set_target(habit.id, day.next_date, changes.target)
                 target = changes.target
             if changed_now and belongs(habit, day.date):
-                user.chase_changed_at = now
+                user.chase_version += 1
             return HabitView(habit, target)
 
     async def archive(self, principal: Principal, habit_id: UUID) -> HabitView:

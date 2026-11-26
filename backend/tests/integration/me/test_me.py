@@ -193,10 +193,7 @@ async def test_the_display_name_and_pursuer_change_now(sign_in, db, clock):
         None,
     )
     # The pursuer is unchanged, and nothing else touches the chase.
-    assert (
-        await db.scalar(select(User.chase_changed_at).where(User.id == me.user_id))
-        is None
-    )
+    assert await db.scalar(select(User.chase_version).where(User.id == me.user_id)) == 0
     refused = await me.client.patch("/v1/me", json={"pursuer": "pirate"})
     assert refused.status_code == 422
 
@@ -208,10 +205,7 @@ async def test_a_day_change_marks_the_chase_changed(sign_in, db, clock):
 
     await me.client.patch("/v1/me", json={"day_start": "07:00"})
 
-    assert (
-        await db.scalar(select(User.chase_changed_at).where(User.id == me.user_id))
-        == later
-    )
+    assert await db.scalar(select(User.chase_version).where(User.id == me.user_id)) == 1
 
 
 TABLES_BY_USER = [

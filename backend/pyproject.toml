@@ -20,10 +20,13 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0",
     "alembic>=1.13",
     "asyncpg>=0.29",
+    "fastmcp==4.1.0",
+    "joserfc>=1.8.0",
+    "httpx[http2]>=0.28.1",
 ]
 
 [project.urls]
-Repository = "https://github.com/matt-mcnaughton/feed-the-goose"
+Repository = "https://github.com/mattjmcnaughton/feed-the-goose"
 
 [tool.uv]
 exclude-newer = "1 week"
@@ -32,7 +35,7 @@ exclude-newer = "1 week"
 dev = [
     "pytest>=8.0",
     "ruff>=0.8",
-    "ty>=0.12",
+    "ty>=0.0.1",
 ]
 
 [tool.ruff]

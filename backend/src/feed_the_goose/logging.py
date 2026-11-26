@@ -20,9 +20,7 @@ def configure_logging() -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             renderer,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            structlog.get_level_from_name(settings.log_level)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(settings.log_level.lower()),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,

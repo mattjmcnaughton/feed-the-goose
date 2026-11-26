@@ -1046,16 +1046,20 @@ extension Components {
         package struct PublicProfile: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/PublicProfile/as_of`.
             package var asOf: Foundation.Date
+            /// When the lead reaches 0 if nothing more is logged, or when the catch happened. Null when no catch happens before the day ends. The day's hours are never published, so a client counting the lead down stops at this time and otherwise shows the lead as of `as_of`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PublicProfile/caught_at`.
+            package var caughtAt: Foundation.Date?
             /// - Remark: Generated from `#/components/schemas/PublicProfile/complete_days`.
             package var completeDays: Swift.Int
-            /// - Remark: Generated from `#/components/schemas/PublicProfile/day_ends_at`.
-            package var dayEndsAt: Foundation.Date
             /// The last 35 days, oldest first.
             ///
             /// - Remark: Generated from `#/components/schemas/PublicProfile/days`.
             package var days: [Components.Schemas.ProfileDay]
             /// - Remark: Generated from `#/components/schemas/PublicProfile/display_name`.
             package var displayName: Swift.String
+            /// Exact at `as_of`.
+            ///
             /// - Remark: Generated from `#/components/schemas/PublicProfile/lead`.
             package var lead: Swift.Double
             /// - Remark: Generated from `#/components/schemas/PublicProfile/pursuer`.
@@ -1070,19 +1074,19 @@ extension Components {
             ///
             /// - Parameters:
             ///   - asOf:
+            ///   - caughtAt: When the lead reaches 0 if nothing more is logged, or when the catch happened. Null when no catch happens before the day ends. The day's hours are never published, so a client counting the lead down stops at this time and otherwise shows the lead as of `as_of`.
             ///   - completeDays:
-            ///   - dayEndsAt:
             ///   - days: The last 35 days, oldest first.
             ///   - displayName:
-            ///   - lead:
+            ///   - lead: Exact at `as_of`.
             ///   - pursuer:
             ///   - stage:
             ///   - state:
             ///   - stepsPerHour:
             package init(
                 asOf: Foundation.Date,
+                caughtAt: Foundation.Date? = nil,
                 completeDays: Swift.Int,
-                dayEndsAt: Foundation.Date,
                 days: [Components.Schemas.ProfileDay],
                 displayName: Swift.String,
                 lead: Swift.Double,
@@ -1092,8 +1096,8 @@ extension Components {
                 stepsPerHour: Swift.Double
             ) {
                 self.asOf = asOf
+                self.caughtAt = caughtAt
                 self.completeDays = completeDays
-                self.dayEndsAt = dayEndsAt
                 self.days = days
                 self.displayName = displayName
                 self.lead = lead
@@ -1104,8 +1108,8 @@ extension Components {
             }
             package enum CodingKeys: String, CodingKey {
                 case asOf = "as_of"
+                case caughtAt = "caught_at"
                 case completeDays = "complete_days"
-                case dayEndsAt = "day_ends_at"
                 case days
                 case displayName = "display_name"
                 case lead

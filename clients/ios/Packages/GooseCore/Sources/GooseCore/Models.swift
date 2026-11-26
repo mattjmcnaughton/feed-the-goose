@@ -446,10 +446,12 @@ public struct PublicProfile: Codable, Hashable, Sendable {
 	public var lead: Double
 	public var asOf: Date
 	public var stepsPerHour: Double
-	public var dayEndsAt: Date
+	/// When the lead reaches 0 if nothing more is logged, or when the catch happened. Nil when no
+	/// catch happens before the day ends; the day's hours are never published.
+	public var caughtAt: Date?
 	public var days: [ProfileDay]
 
-	public init(displayName: String, pursuer: Pursuer, completeDays: Int, stage: Int, state: ChaseState, lead: Double, asOf: Date, stepsPerHour: Double, dayEndsAt: Date, days: [ProfileDay]) {
+	public init(displayName: String, pursuer: Pursuer, completeDays: Int, stage: Int, state: ChaseState, lead: Double, asOf: Date, stepsPerHour: Double, caughtAt: Date?, days: [ProfileDay]) {
 		self.displayName = displayName
 		self.pursuer = pursuer
 		self.completeDays = completeDays
@@ -458,7 +460,7 @@ public struct PublicProfile: Codable, Hashable, Sendable {
 		self.lead = lead
 		self.asOf = asOf
 		self.stepsPerHour = stepsPerHour
-		self.dayEndsAt = dayEndsAt
+		self.caughtAt = caughtAt
 		self.days = days
 	}
 }

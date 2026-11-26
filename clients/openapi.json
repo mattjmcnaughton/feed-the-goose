@@ -754,14 +754,15 @@
             "title": "As Of",
             "type": "string"
           },
+          "caught_at": {
+            "description": "When the lead reaches 0 if nothing more is logged, or when the catch happened. Null when no catch happens before the day ends. The day's hours are never published, so a client counting the lead down stops at this time and otherwise shows the lead as of `as_of`.",
+            "format": "date-time",
+            "title": "Caught At",
+            "type": "string"
+          },
           "complete_days": {
             "title": "Complete Days",
             "type": "integer"
-          },
-          "day_ends_at": {
-            "format": "date-time",
-            "title": "Day Ends At",
-            "type": "string"
           },
           "days": {
             "description": "The last 35 days, oldest first.",
@@ -776,6 +777,7 @@
             "type": "string"
           },
           "lead": {
+            "description": "Exact at `as_of`.",
             "title": "Lead",
             "type": "number"
           },
@@ -803,7 +805,6 @@
           "lead",
           "as_of",
           "steps_per_hour",
-          "day_ends_at",
           "days"
         ],
         "title": "PublicProfile",

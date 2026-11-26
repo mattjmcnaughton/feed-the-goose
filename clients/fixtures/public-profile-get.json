@@ -16,7 +16,7 @@
       "lead": 80.0,
       "as_of": "2026-11-26T23:00:00Z",
       "steps_per_hour": 5.56,
-      "day_ends_at": "2026-11-27T05:00:00Z",
+      "caught_at": null,
       "days": [
         {
           "date": "2026-11-20",

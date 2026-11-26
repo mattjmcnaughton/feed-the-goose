@@ -48,7 +48,7 @@ test-external:
     uv run pytest -m external
 
 # Fast pre-push check
-gate: fmt lint typecheck test-unit
+gate: fmt lint typecheck test-unit openapi-check
 
 # Full check
 gate-expensive: gate test-integration test-e2e
@@ -95,10 +95,10 @@ dev:
 worker:
     uv run python -m feed_the_goose.worker
 
-# Write clients/openapi.json (added by T02)
+# Write clients/openapi.json from the app's /v1 routes
 openapi:
-    @echo "not implemented yet: ticket T02 adds the OpenAPI export" >&2; exit 1
+    uv run python scripts/export_openapi.py
 
-# Fail when clients/openapi.json is stale (added by T02)
+# Fail when clients/openapi.json is stale
 openapi-check:
-    @echo "not implemented yet: ticket T02 adds the OpenAPI check" >&2; exit 1
+    uv run python scripts/export_openapi.py --check

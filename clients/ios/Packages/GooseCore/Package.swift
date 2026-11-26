@@ -8,7 +8,8 @@ let package = Package(
 		.library(name: "GooseCore", targets: ["GooseCore"]),
 	],
 	targets: [
-		.target(name: "GooseCore"),
+		// `Fixtures` is a copy of clients/fixtures that scripts/generate-api.sh keeps in step.
+		.target(name: "GooseCore", resources: [.copy("Fixtures")]),
 		.testTarget(name: "GooseCoreTests", dependencies: ["GooseCore"]),
 	]
 )

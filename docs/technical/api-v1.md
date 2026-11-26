@@ -308,10 +308,13 @@ The number of habits is capped at 8. A ninth is refused with 422 `invalid`.
 | --- | --- | --- | --- |
 | GET | `/v1/me/profile` | App session | `handle`, `public` |
 | PUT | `/v1/me/profile` | App session | Sets `handle` (3 to 30 characters: a to z, 0 to 9 and `-`) and `public` |
-| GET | `/v1/profiles/{handle}` | None | `display_name`, `pursuer`, `complete_days`, `stage`, `state`, `lead`, `as_of`, `steps_per_hour`, `day_ends_at` and the last 35 `days` as `[{ date, result }]` |
+| GET | `/v1/profiles/{handle}` | None | `display_name`, `pursuer`, `complete_days`, `stage`, `state`, `lead`, `as_of`, `steps_per_hour`, `caught_at` and the last 35 `days` as `[{ date, result }]` |
 | GET | `/{handle}` | None | The same as a server-rendered HTML page, drawn with that user's pursuer |
 
 The public endpoints never include habit names, amounts, log times or the user's day hours.
+**[Amended]** `caught_at` replaced `day_ends_at`, which would have published the day's end
+(constitution §5). It means what it means on the Chase: a client counting the lead down stops
+there, and when it is null shows the lead as of `as_of`.
 Both return 404 when the profile isn't public. **[Amended]** Handles that would shadow a route,
 such as `v1` and `mcp`, are refused with 422 `invalid`.
 

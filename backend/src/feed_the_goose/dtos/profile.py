@@ -35,8 +35,15 @@ class PublicProfile(Dto):
     complete_days: int
     stage: int
     state: ChaseState
-    lead: float
+    lead: float = Field(description="Exact at `as_of`.")
     as_of: Instant
     steps_per_hour: float
-    day_ends_at: Instant
+    caught_at: Instant | None = Field(
+        description=(
+            "When the lead reaches 0 if nothing more is logged, or when the catch "
+            "happened. Null when no catch happens before the day ends. The day's "
+            "hours are never published, so a client counting the lead down stops "
+            "at this time and otherwise shows the lead as of `as_of`."
+        )
+    )
     days: list[ProfileDay] = Field(description="The last 35 days, oldest first.")

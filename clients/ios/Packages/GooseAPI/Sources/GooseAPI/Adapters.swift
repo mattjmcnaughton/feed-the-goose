@@ -206,7 +206,7 @@ extension PublicProfile {
 		self.init(
 			displayName: profile.displayName, pursuer: Pursuer(profile.pursuer), completeDays: profile.completeDays,
 			stage: profile.stage, state: ChaseState(profile.state), lead: profile.lead, asOf: profile.asOf,
-			stepsPerHour: profile.stepsPerHour, dayEndsAt: profile.dayEndsAt,
+			stepsPerHour: profile.stepsPerHour, caughtAt: profile.caughtAt,
 			days: profile.days.map { ProfileDay(date: LocalDate(rawValue: $0.date), result: ChaseState($0.result)) }
 		)
 	}

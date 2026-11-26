@@ -29,6 +29,10 @@ struct LiveEnvironment {
 		bundle: Bundle = .main,
 		arguments: [String] = ProcessInfo.processInfo.arguments
 	) -> LiveEnvironment {
+		// The session token lives only in the Keychain. The shared URL cache writes requests
+		// and responses to Library/Caches, Authorization header and session response included,
+		// so it is turned off before the first request. The API is never read from a cache.
+		URLCache.shared = URLCache(memoryCapacity: 0, diskCapacity: 0)
 		let configured = defaults.string(forKey: "FTGAPIBaseURL")
 			?? bundle.object(forInfoDictionaryKey: "FTGAPIBaseURL") as? String
 		guard let configured, let url = URL(string: configured) else {

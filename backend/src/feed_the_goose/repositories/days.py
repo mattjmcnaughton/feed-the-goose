@@ -28,6 +28,15 @@ class DayRepository:
             select(Day).where(Day.user_id == user_id).order_by(Day.date.desc()).limit(1)
         )
 
+    async def before(self, user_id: UUID, day: date) -> Day | None:
+        """The user's latest day before `day`."""
+        return await self._session.scalar(
+            select(Day)
+            .where(Day.user_id == user_id, Day.date < day)
+            .order_by(Day.date.desc())
+            .limit(1)
+        )
+
     async def between(self, user_id: UUID, first: date, last: date) -> list[Day]:
         """The user's days from `first` to `last`, both included, oldest first."""
         rows = await self._session.scalars(

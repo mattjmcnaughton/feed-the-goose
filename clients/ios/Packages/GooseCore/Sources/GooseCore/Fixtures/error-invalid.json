@@ -1,0 +1,31 @@
+{
+  "name": "error-invalid",
+  "request": {
+    "method": "POST",
+    "path": "/v1/habits",
+    "body": {
+      "name": "",
+      "unit": "reps",
+      "target": 0,
+      "chunk": 10
+    }
+  },
+  "response": {
+    "status": 422,
+    "body": {
+      "type": "invalid",
+      "title": "The request is invalid",
+      "status": 422,
+      "errors": [
+        {
+          "field": "name",
+          "message": "String should have at least 1 character"
+        },
+        {
+          "field": "target",
+          "message": "Input should be greater than 0"
+        }
+      ]
+    }
+  }
+}

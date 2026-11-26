@@ -1,0 +1,62 @@
+{
+  "name": "days-list",
+  "request": {
+    "method": "GET",
+    "path": "/v1/days?from=2026-11-20&to=2026-11-26",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "date": "2026-11-20",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 131.5,
+        "complete_days": 8
+      },
+      {
+        "date": "2026-11-21",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 128.9,
+        "complete_days": 9
+      },
+      {
+        "date": "2026-11-22",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 140.2,
+        "complete_days": 10
+      },
+      {
+        "date": "2026-11-23",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 125.0,
+        "complete_days": 11
+      },
+      {
+        "date": "2026-11-24",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 133.8,
+        "complete_days": 12
+      },
+      {
+        "date": "2026-11-25",
+        "pursuer": "goose",
+        "result": "complete",
+        "end_lead": 137.4,
+        "complete_days": 13
+      },
+      {
+        "date": "2026-11-26",
+        "pursuer": "goose",
+        "result": "running",
+        "end_lead": null,
+        "complete_days": 13
+      }
+    ]
+  }
+}

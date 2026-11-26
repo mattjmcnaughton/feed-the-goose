@@ -20,6 +20,14 @@ default:
 ios-generate:
     xcodegen generate --spec project.yml
 
+# Regenerate the Swift client in GooseAPI from clients/openapi.json.
+ios-generate-api:
+    scripts/generate-api.sh
+
+# Fail when the committed Swift client is stale against clients/openapi.json.
+ios-generate-check:
+    scripts/generate-api.sh --check
+
 # Build the app and the widget extension for the pinned simulator.
 ios-build: ios-generate
     {{xcodebuild}} -quiet build

@@ -1,0 +1,62 @@
+{
+  "name": "example-day-07-chase",
+  "request": {
+    "method": "GET",
+    "path": "/v1/chase/today",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "date": "2026-11-26",
+      "pursuer": "goose",
+      "state": "running",
+      "as_of": "2026-11-26T23:00:00Z",
+      "lead": 80.0,
+      "starting_lead": 100.0,
+      "earned": 46.7,
+      "walked": 66.7,
+      "steps_per_hour": 5.56,
+      "day_starts_at": "2026-11-26T11:00:00Z",
+      "day_ends_at": "2026-11-27T05:00:00Z",
+      "next_day_starts_at": "2026-11-27T11:00:00Z",
+      "caught_at": null,
+      "habits": [
+        {
+          "habit_id": "22222222-2222-4222-8222-000000000001",
+          "name": "Pushups",
+          "unit": "reps",
+          "target": 50,
+          "chunk": 10,
+          "logged": 20,
+          "steps": 13.3,
+          "done": false
+        },
+        {
+          "habit_id": "22222222-2222-4222-8222-000000000002",
+          "name": "Workout",
+          "unit": "minutes",
+          "target": 30,
+          "chunk": 10,
+          "logged": 30,
+          "steps": 33.3,
+          "done": true
+        },
+        {
+          "habit_id": "22222222-2222-4222-8222-000000000003",
+          "name": "Reading",
+          "unit": "pages",
+          "target": 20,
+          "chunk": 5,
+          "logged": 0,
+          "steps": 0.0,
+          "done": false
+        }
+      ],
+      "streak": {
+        "complete_days": 13,
+        "stage": 2
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "public-profile-get",
+  "request": {
+    "method": "GET",
+    "path": "/v1/profiles/matt",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "display_name": "Matt",
+      "pursuer": "goose",
+      "complete_days": 13,
+      "stage": 2,
+      "state": "running",
+      "lead": 80.0,
+      "as_of": "2026-11-26T23:00:00Z",
+      "steps_per_hour": 5.56,
+      "day_ends_at": "2026-11-27T05:00:00Z",
+      "days": [
+        {
+          "date": "2026-11-20",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-21",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-22",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-23",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-24",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-25",
+          "result": "complete"
+        },
+        {
+          "date": "2026-11-26",
+          "result": "running"
+        }
+      ]
+    }
+  }
+}

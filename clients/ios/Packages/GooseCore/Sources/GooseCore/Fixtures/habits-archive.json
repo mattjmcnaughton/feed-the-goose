@@ -1,0 +1,21 @@
+{
+  "name": "habits-archive",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1/habits/22222222-2222-4222-8222-000000000003",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "22222222-2222-4222-8222-000000000003",
+      "name": "Reading",
+      "unit": "pages",
+      "target": 20,
+      "chunk": 5,
+      "position": 2,
+      "effective_from": "2026-10-22",
+      "archived_from": "2026-11-27"
+    }
+  }
+}

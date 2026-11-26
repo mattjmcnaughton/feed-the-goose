@@ -44,10 +44,8 @@ struct RootView: View {
 						NavigationStack { TodayView(environment: app) }
 					}
 					Tab("Settings", systemImage: "gearshape") {
-						NavigationStack {
-							SettingsView(environment: app)
-								.toolbar { ToolbarItem(placement: .topBarTrailing) { SignOutButton() } }
-						}
+						// Settings has its own sign-out, which also removes the push registration.
+						NavigationStack { SettingsView(environment: app) }
 					}
 				}
 			case .unreachable:

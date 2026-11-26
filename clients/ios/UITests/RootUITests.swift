@@ -18,7 +18,7 @@ final class RootUITests: XCTestCase {
 		XCTAssertTrue(app.staticTexts["today.headline"].waitForExistence(timeout: 5))
 		saveScreenshot("root")
 		app.tabBars.buttons["Settings"].tap()
-		XCTAssertTrue(app.staticTexts["Built in T17."].waitForExistence(timeout: 5))
+		XCTAssertTrue(app.buttons["day.edit"].waitForExistence(timeout: 5))
 	}
 
 	func testRigGalleryLaunchArgument() {

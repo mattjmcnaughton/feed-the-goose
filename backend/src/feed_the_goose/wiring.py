@@ -13,6 +13,7 @@ from feed_the_goose.clock import Clock, SystemClock
 from feed_the_goose.config import Settings
 from feed_the_goose.identity.auth0 import Auth0Verifier
 from feed_the_goose.identity.dev import DevIdentityTokens, check_development_guard
+from feed_the_goose.services.accounts import AccountService, NoIdentityAdmin
 from feed_the_goose.services.auth import AuthService
 
 if TYPE_CHECKING:
@@ -27,6 +28,7 @@ class Wiring:
     clock: Clock
     sessions: async_sessionmaker[AsyncSession]
     auth: AuthService
+    accounts: AccountService
     # Present only when the dev sign-in is on, outside production.
     dev_tokens: DevIdentityTokens | None
 
@@ -67,6 +69,12 @@ def build(
         sessions=sessions,
         auth=AuthService(
             settings=settings, clock=clock, sessions=sessions, verifiers=verifiers
+        ),
+        accounts=AccountService(
+            settings=settings,
+            clock=clock,
+            sessions=sessions,
+            identity_admin=NoIdentityAdmin(),
         ),
         dev_tokens=dev_tokens,
     )

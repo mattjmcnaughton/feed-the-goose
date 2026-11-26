@@ -2,11 +2,27 @@
 
 A habit app for iOS. A goose chases you all day, and every habit you log throws it bread.
 
-**Status:** planned, not built. There is no app code yet. The clickable prototypes that
-settled the design are in [`docs/prototypes`](docs/prototypes), and the plan for v1 is in the
-[constitution](CONSTITUTION.md), the [PRD](docs/product/prds/01-v1.md), the
+**Status:** v1 is built as far as an end-to-end demo in the iOS Simulator against a backend
+running locally. Watch [`docs/demo/v1-demo.mp4`](docs/demo/v1-demo.mp4); the scene list, the
+evidence and a screenshot gallery are in [`docs/demo`](docs/demo), and
+[`docs/technical/demo.md`](docs/technical/demo.md) records it again.
+
+- **Built:** the FastAPI service in [`backend`](backend) (the chase rules, habits, logs and
+  history, sessions and keys, MCP, the public profile, reminders and the push worker, seed
+  scenarios), and the SwiftUI app in [`clients/ios`](clients/ios) (sign-in, habit setup,
+  Today with Snap, Feast and Peck, undo, the retry queue, Settings, the Chase and Feed widgets
+  and the Shortcuts actions).
+- **The demo shows:** sign-in and habit setup; a log and an undo; a log from the Feed widget;
+  a log through MCP; finishing the day; the public profile; being caught; a log queued offline
+  and delivered later; and a reminder planned by the worker and delivered by `simctl`.
+- **Waits:** a real phone and TestFlight, APNs delivery and widget refresh by push, the Lock
+  Screen, Auth0, deployment to the Box, and rate limiting. Each needs something only Matt can
+  provide; see the design doc's [§10](docs/technical/tdds/01-v1.md#10-after-the-demo).
+
+The plan is in the [constitution](CONSTITUTION.md), the [PRD](docs/product/prds/01-v1.md), the
 [design doc](docs/technical/tdds/01-v1.md) and the
-[work breakdown](docs/technical/tickets/01-v1.md).
+[work breakdown](docs/technical/tickets/01-v1.md). The clickable prototypes that settled the
+design are in [`docs/prototypes`](docs/prototypes).
 
 | A crust lands | The goose is fed | The goose catches you |
 | --- | --- | --- |
@@ -101,7 +117,10 @@ needed Swift, and I found nothing equivalent for Tauri.
 | [`CONSTITUTION.md`](CONSTITUTION.md) | The commitments that bind the project and the agents building it. |
 | [`docs/CONTEXT.md`](docs/CONTEXT.md) | The vocabulary. |
 | [`docs/product/prds`](docs/product/prds) | What v1 does and how to tell that it works. |
-| [`docs/technical`](docs/technical) | The API spec, the v1 design doc and the tickets. |
+| [`backend`](backend) | The FastAPI service. |
+| [`clients`](clients) | The API contract, its fixtures, and the iOS app in `clients/ios`. |
+| [`docs/demo`](docs/demo) | The v1 demo video, its scene list and screenshots. |
+| [`docs/technical`](docs/technical) | The API spec, the v1 design doc, the tickets and the demo runbook. |
 | [`docs/prototypes`](docs/prototypes) | Six clickable prototypes, their source, screenshots, animation GIFs, and the scripts that capture them. |
 | [`spikes/swiftui-goose`](spikes/swiftui-goose) | A throwaway SwiftUI port of the goose rig and three clips, kept as a reference. |
 

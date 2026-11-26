@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 /// A placeholder widget that shows the value the app wrote to the App Group and to the
-/// Keychain, and whether it could read each. T18 replaces it with the Chase and Feed widgets.
+/// Keychain, and whether it could read each. Debug builds only: `SharingUITests` adds it.
 struct SharingProbeEntry: TimelineEntry {
 	let date: Date
 	let appGroup: String
@@ -60,12 +60,5 @@ struct SharingProbeWidget: Widget {
 		.configurationDisplayName("Sharing probe")
 		.description("Shows what the app wrote to the App Group and the Keychain.")
 		.supportedFamilies([.systemMedium])
-	}
-}
-
-@main
-struct FeedTheGooseWidgets: WidgetBundle {
-	var body: some Widget {
-		SharingProbeWidget()
 	}
 }

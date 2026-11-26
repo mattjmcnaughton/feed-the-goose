@@ -1,9 +1,9 @@
-import Foundation
-import OpenAPIRuntime
-import OpenAPIURLSession
+public import Foundation
+public import OpenAPIRuntime
+internal import OpenAPIURLSession
 
-/// The server the live services talk to. A placeholder until T13 adds the generated client
-/// under `Generated/` and the live services.
+/// The server the live services talk to. The contract's paths start with `/v1`, so the
+/// generated client takes the server's root.
 public struct APIServer: Sendable, Equatable {
 	public let baseURL: URL
 
@@ -11,12 +11,7 @@ public struct APIServer: Sendable, Equatable {
 		self.baseURL = baseURL
 	}
 
-	/// The `/v1` root that every generated operation is relative to.
-	public var v1URL: URL {
-		baseURL.appending(path: "v1")
-	}
-
-	/// The transport the generated client will use.
+	/// The transport the generated client uses.
 	public func makeTransport() -> any ClientTransport {
 		URLSessionTransport()
 	}

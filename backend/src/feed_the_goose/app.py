@@ -4,8 +4,22 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from feed_the_goose import errors
 from feed_the_goose.logging import configure_logging
-from feed_the_goose.routers import health
+from feed_the_goose.routers import (
+    auth,
+    chase,
+    days,
+    devices,
+    habits,
+    health,
+    keys,
+    logs,
+    me,
+    profile,
+    public,
+    reminders,
+)
 
 
 @asynccontextmanager
@@ -25,6 +39,19 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+
+    errors.install(app)
+    app.include_router(auth.router)
+    app.include_router(me.router)
+    app.include_router(keys.router)
+    app.include_router(habits.router)
+    app.include_router(logs.router)
+    app.include_router(chase.router)
+    app.include_router(days.router)
+    app.include_router(profile.router)
+    app.include_router(public.router)
+    app.include_router(devices.router)
+    app.include_router(reminders.router)
 
     return app
 

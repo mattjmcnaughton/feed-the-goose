@@ -21,6 +21,13 @@ let package = Package(
 				.product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
 			]
 		),
-		.testTarget(name: "GooseAPITests", dependencies: ["GooseAPI"]),
+		.testTarget(
+			name: "GooseAPITests",
+			dependencies: [
+				"GooseAPI",
+				"GooseCore",
+				.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+			]
+		),
 	]
 )

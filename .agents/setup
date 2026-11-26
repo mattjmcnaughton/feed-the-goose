@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Orb setup: just, uv, Python and the backend's locked dependencies. Safe to rerun.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+just_version="1.59.0"
+export PATH="$HOME/.local/bin:$PATH"
+
+step() { printf '==> %s\n' "$*"; }
+
+step "uv"
+if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+uv --version
+
+step "just ${just_version}"
+if [ "$(just --version 2>/dev/null)" != "just ${just_version}" ]; then
+    uv tool install --force "rust-just==${just_version}"
+fi
+just --version
+
+step "Python (backend/.python-version)"
+if ! (cd "$repo_root/backend" && uv python find >/dev/null 2>&1); then
+    (cd "$repo_root/backend" && uv python install)
+fi
+(cd "$repo_root/backend" && uv python find)
+
+step "backend dependencies (uv.lock)"
+uv sync --frozen --project "$repo_root/backend"
+
+step "done"

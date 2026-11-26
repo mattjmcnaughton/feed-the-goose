@@ -1,0 +1,142 @@
+# The Xcode project is generated from this file with XcodeGen (`just ios-generate`).
+# Never commit the generated FeedTheGoose.xcodeproj. Sources are found by folder, so adding a
+# file needs no edit here.
+name: FeedTheGoose
+options:
+  bundleIdPrefix: com.mattjmcnaughton
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # No signing team. Simulator builds are signed ad hoc, and Xcode links the entitlements
+    # into the binary (with the team prefix FAKETEAMID), so the App Group and the shared
+    # Keychain group work in the simulator. Never set CODE_SIGNING_ALLOWED to NO: that drops
+    # the entitlements. A device build needs a team, which waits for Matt.
+    CODE_SIGN_STYLE: Manual
+    FTG_APP_GROUP: group.com.mattjmcnaughton.feedthegoose
+    FTG_KEYCHAIN_ACCESS_GROUP: $(AppIdentifierPrefix)com.mattjmcnaughton.feedthegoose
+  configs:
+    Debug:
+      FTG_API_BASE_URL: http://localhost:8000
+    Release:
+      FTG_API_BASE_URL: https://feed-the-goose.mattjmcnaughton.com
+
+packages:
+  GooseCore:
+    path: Packages/GooseCore
+  GooseAPI:
+    path: Packages/GooseAPI
+  GooseRig:
+    path: Packages/GooseRig
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.7
+
+# The App Group and the shared Keychain group, on the app and the widget extension. XcodeGen
+# writes these into the entitlements files, so edit them here.
+x-sharing: &sharing
+  com.apple.security.application-groups: [$(FTG_APP_GROUP)]
+  keychain-access-groups: [$(FTG_KEYCHAIN_ACCESS_GROUP)]
+
+targets:
+  FeedTheGoose:
+    type: application
+    platform: iOS
+    sources: [App, Intents]
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Feed the Goose
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Light
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIAppFonts: [Shrikhand-Subset.ttf]
+        # Applies to every build. Release is not built until deployment (TDD §10), which
+        # should limit this to debug builds.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        FTGAPIBaseURL: $(FTG_API_BASE_URL)
+        FTGAppGroup: $(FTG_APP_GROUP)
+        FTGKeychainAccessGroup: $(FTG_KEYCHAIN_ACCESS_GROUP)
+    entitlements:
+      path: App/FeedTheGoose.entitlements
+      properties: *sharing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattjmcnaughton.feedthegoose
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+    dependencies:
+      - target: FeedTheGooseWidgets
+      - package: GooseCore
+      - package: GooseAPI
+      - package: GooseRig
+
+  FeedTheGooseWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets, Intents]
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Feed the Goose
+        UIUserInterfaceStyle: Light
+        UIAppFonts: [Shrikhand-Subset.ttf]
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        FTGAPIBaseURL: $(FTG_API_BASE_URL)
+        FTGAppGroup: $(FTG_APP_GROUP)
+        FTGKeychainAccessGroup: $(FTG_KEYCHAIN_ACCESS_GROUP)
+    entitlements:
+      path: Widgets/FeedTheGooseWidgets.entitlements
+      properties: *sharing
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattjmcnaughton.feedthegoose.widgets
+    dependencies:
+      - package: GooseCore
+      - package: GooseAPI
+      - package: GooseRig
+
+  FeedTheGooseTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattjmcnaughton.feedthegoose.tests
+    dependencies:
+      - target: FeedTheGoose
+      - package: SnapshotTesting
+
+  FeedTheGooseUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattjmcnaughton.feedthegoose.uitests
+        TEST_TARGET_NAME: FeedTheGoose
+    dependencies:
+      - target: FeedTheGoose
+
+schemes:
+  FeedTheGoose:
+    build:
+      targets:
+        FeedTheGoose: all
+    test:
+      config: Debug
+      targets:
+        - FeedTheGooseTests
+        - FeedTheGooseUITests
+        - package: GooseCore/GooseCoreTests
+        - package: GooseAPI/GooseAPITests
+        - package: GooseRig/GooseRigTests

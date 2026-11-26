@@ -15,6 +15,7 @@ from feed_the_goose.identity.auth0 import Auth0Verifier
 from feed_the_goose.identity.dev import DevIdentityTokens, check_development_guard
 from feed_the_goose.services.accounts import AccountService, NoIdentityAdmin
 from feed_the_goose.services.auth import AuthService
+from feed_the_goose.services.habits import HabitService
 
 if TYPE_CHECKING:
     from feed_the_goose.identity import IdentityVerifier
@@ -29,6 +30,7 @@ class Wiring:
     sessions: async_sessionmaker[AsyncSession]
     auth: AuthService
     accounts: AccountService
+    habits: HabitService
     # Present only when the dev sign-in is on, outside production.
     dev_tokens: DevIdentityTokens | None
 
@@ -76,5 +78,6 @@ def build(
             sessions=sessions,
             identity_admin=NoIdentityAdmin(),
         ),
+        habits=HabitService(settings=settings, clock=clock, sessions=sessions),
         dev_tokens=dev_tokens,
     )

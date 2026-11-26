@@ -4,6 +4,7 @@ from datetime import date
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from feed_the_goose.models import Habit, HabitTarget
@@ -30,6 +31,19 @@ class HabitRepository:
         await self._session.flush()
         return row
 
+    async def set_target(
+        self, habit_id: UUID, effective_from: date, target: int
+    ) -> None:
+        """Set the target from `effective_from`, replacing one already set for it."""
+        await self._session.execute(
+            insert(HabitTarget)
+            .values(habit_id=habit_id, effective_from=effective_from, target=target)
+            .on_conflict_do_update(
+                index_elements=["habit_id", "effective_from"],
+                set_={"target": target},
+            )
+        )
+
     async def get(self, user_id: UUID, habit_id: UUID) -> Habit | None:
         """The user's habit with that ID; another user's habit is not found."""
         return await self._session.scalar(
@@ -53,3 +67,12 @@ class HabitRepository:
             .order_by(HabitTarget.effective_from)
         )
         return list(rows)
+
+    async def latest_targets(self, habit_ids: list[UUID]) -> dict[UUID, int]:
+        """Each habit's target with the latest `effective_from`."""
+        rows = await self._session.execute(
+            select(HabitTarget.habit_id, HabitTarget.target)
+            .where(HabitTarget.habit_id.in_(habit_ids))
+            .order_by(HabitTarget.effective_from)
+        )
+        return {habit_id: target for habit_id, target in rows}

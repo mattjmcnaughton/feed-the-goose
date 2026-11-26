@@ -1,0 +1,12 @@
+{
+  "name": "devices-delete",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1/me/devices/55555555-5555-4555-8555-000000000001",
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "body": null
+  }
+}

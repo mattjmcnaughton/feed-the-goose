@@ -1,0 +1,26 @@
+{
+  "name": "reminders-update",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/me/reminders",
+    "body": {
+      "enabled": true,
+      "when_lead_below": 30,
+      "quiet_hours": {
+        "start": "22:00",
+        "end": "07:00"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "when_lead_below": 30,
+      "quiet_hours": {
+        "start": "22:00",
+        "end": "07:00"
+      }
+    }
+  }
+}

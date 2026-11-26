@@ -1,0 +1,84 @@
+{
+  "name": "example-day-05-log-reading",
+  "request": {
+    "method": "POST",
+    "path": "/v1/logs",
+    "body": {
+      "id": "01a218e8-31c0-7004-8000-000000000004",
+      "habit_id": "22222222-2222-4222-8222-000000000003",
+      "logged_at": "2026-11-26T17:30:00Z",
+      "source": "app"
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "log": {
+        "id": "01a218e8-31c0-7004-8000-000000000004",
+        "habit_id": "22222222-2222-4222-8222-000000000003",
+        "amount": 5,
+        "logged_at": "2026-11-26T17:30:00Z",
+        "source": "app",
+        "date": "2026-11-26",
+        "steps": 8.3,
+        "undone_at": null
+      },
+      "event": {
+        "kind": "gain",
+        "habit_id": "22222222-2222-4222-8222-000000000003",
+        "steps": 8.3
+      },
+      "chase": {
+        "date": "2026-11-26",
+        "pursuer": "goose",
+        "state": "running",
+        "as_of": "2026-11-26T17:30:00Z",
+        "lead": 118.9,
+        "starting_lead": 100.0,
+        "earned": 55.0,
+        "walked": 36.1,
+        "steps_per_hour": 5.56,
+        "day_starts_at": "2026-11-26T11:00:00Z",
+        "day_ends_at": "2026-11-27T05:00:00Z",
+        "next_day_starts_at": "2026-11-27T11:00:00Z",
+        "caught_at": null,
+        "habits": [
+          {
+            "habit_id": "22222222-2222-4222-8222-000000000001",
+            "name": "Pushups",
+            "unit": "reps",
+            "target": 50,
+            "chunk": 10,
+            "logged": 20,
+            "steps": 13.3,
+            "done": false
+          },
+          {
+            "habit_id": "22222222-2222-4222-8222-000000000002",
+            "name": "Workout",
+            "unit": "minutes",
+            "target": 30,
+            "chunk": 10,
+            "logged": 30,
+            "steps": 33.3,
+            "done": true
+          },
+          {
+            "habit_id": "22222222-2222-4222-8222-000000000003",
+            "name": "Reading",
+            "unit": "pages",
+            "target": 20,
+            "chunk": 5,
+            "logged": 5,
+            "steps": 8.3,
+            "done": false
+          }
+        ],
+        "streak": {
+          "complete_days": 13,
+          "stage": 2
+        }
+      }
+    }
+  }
+}

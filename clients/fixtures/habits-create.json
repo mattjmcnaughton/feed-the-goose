@@ -1,0 +1,26 @@
+{
+  "name": "habits-create",
+  "request": {
+    "method": "POST",
+    "path": "/v1/habits",
+    "body": {
+      "name": "Stretching",
+      "unit": "minutes",
+      "target": 15,
+      "chunk": 5
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "id": "22222222-2222-4222-8222-000000000004",
+      "name": "Stretching",
+      "unit": "minutes",
+      "target": 15,
+      "chunk": 5,
+      "position": 3,
+      "effective_from": "2026-11-27",
+      "archived_from": null
+    }
+  }
+}

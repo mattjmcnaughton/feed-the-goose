@@ -1,0 +1,27 @@
+{
+  "name": "keys-list",
+  "request": {
+    "method": "GET",
+    "path": "/v1/me/keys",
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": "44444444-4444-4444-8444-000000000001",
+        "kind": "mcp",
+        "name": "Claude Code",
+        "created_at": "2026-11-10T15:00:00Z",
+        "last_used_at": "2026-11-26T22:00:00Z"
+      },
+      {
+        "id": "44444444-4444-4444-8444-000000000002",
+        "kind": "api",
+        "name": "Scripts",
+        "created_at": "2026-11-12T16:00:00Z",
+        "last_used_at": null
+      }
+    ]
+  }
+}

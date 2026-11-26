@@ -84,20 +84,27 @@ def plan(
     )
 
 
-def payload(kind: ReminderKind, day: date, *, when_lead_below: int) -> dict[str, Any]:
+def payload(
+    kind: ReminderKind,
+    day: date,
+    *,
+    when_lead_below: int,
+    remind_before: timedelta,
+) -> dict[str, Any]:
     """The APNs payload of a reminder. The app may replace the words with the
     pursuer's own; `kind` and `date` tell it which reminder this is."""
+    ahead = _words(remind_before)
     title, body = {
         ReminderKind.LEAD_LOW: (
             "Your lead is low",
             f"Your lead is below {when_lead_below} steps. Log a habit to get ahead.",
         ),
         ReminderKind.BEFORE_CAUGHT: (
-            "You'll be caught in an hour",
+            f"You'll be caught in {ahead}",
             "Log a habit to stay ahead.",
         ),
         ReminderKind.BEFORE_DAY_END: (
-            "Your day ends in an hour",
+            f"Your day ends in {ahead}",
             "Finish your habits to complete the day.",
         ),
     }[kind]
@@ -110,6 +117,16 @@ def payload(kind: ReminderKind, day: date, *, when_lead_below: int) -> dict[str,
         "kind": kind.value,
         "date": day.isoformat(),
     }
+
+
+def _words(span: timedelta) -> str:
+    """A lead time in words, such as "an hour", "2 hours" or "90 minutes"."""
+    seconds = int(span.total_seconds())
+    for size, one, many in ((3600, "an hour", "hours"), (60, "a minute", "minutes")):
+        if seconds % size == 0:
+            count = seconds // size
+            return one if count == 1 else f"{count} {many}"
+    return "a second" if seconds == 1 else f"{seconds} seconds"
 
 
 def _span(hours: Fraction) -> timedelta:

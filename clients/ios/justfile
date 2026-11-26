@@ -41,6 +41,10 @@ ios-uitest: ios-generate
     mkdir -p "{{captures}}"
     TEST_RUNNER_FTG_CAPTURE_DIR="{{captures}}" {{xcodebuild}} test -only-testing:FeedTheGooseUITests
 
+# The live-backend UI test on an erased simulator, recorded to the capture folder.
+ios-live-test: ios-generate
+    FTG_CAPTURE_DIR="{{captures}}" scripts/live-test.sh
+
 # Boot the pinned simulator and wait until it is ready.
 ios-boot:
     udid="$(scripts/simulator-udid.sh '{{simulator}}' '{{runtime}}')"; \

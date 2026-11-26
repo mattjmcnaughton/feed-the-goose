@@ -2,9 +2,11 @@
 
 import json
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import AfterValidator, BaseModel
 
 from feed_the_goose import errors
 from feed_the_goose.app import create_app
@@ -51,6 +53,36 @@ def test_a_validation_failure_answers_the_invalid_fixture():
     assert response.status_code == 422
     assert response.headers["content-type"] == "application/problem+json"
     assert response.json() == fixture["response"]["body"]
+
+
+def test_an_unknown_path_answers_not_found():
+    response = _client().get("/v1/nothing-here")
+
+    assert response.status_code == 404
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json() == {"type": "not_found", "title": "Not found", "status": 404}
+
+
+def test_a_custom_validator_message_is_not_echoed():
+    app = FastAPI()
+    errors.install(app)
+
+    def refuse(value: str) -> str:
+        raise ValueError(f"secret detail about {value}")
+
+    class Body(BaseModel):
+        zone: Annotated[str, AfterValidator(refuse)]
+
+    @app.post("/zone")
+    async def zone(body: Body) -> None:
+        return None
+
+    response = TestClient(app).post("/zone", json={"zone": "Mars/Base"})
+
+    assert response.status_code == 422
+    assert response.json()["errors"] == [
+        {"field": "zone", "message": "Value is not valid"}
+    ]
 
 
 def test_every_error_response_in_the_schema_is_problem_json():

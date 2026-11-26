@@ -7,8 +7,10 @@ handler builds them, and no response echoes an exception's text.
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from feed_the_goose.dtos.errors import FieldError, Problem, ProblemType
 
@@ -68,6 +70,7 @@ def install(app: FastAPI) -> None:
     """Register the handlers and add the problem schemas to the app's OpenAPI."""
     app.exception_handler(ProblemError)(_problem_handler)
     app.exception_handler(RequestValidationError)(_validation_handler)
+    app.exception_handler(StarletteHTTPException)(_http_handler)
 
     build = app.openapi
 
@@ -113,8 +116,20 @@ async def _validation_handler(_: Request, exc: RequestValidationError) -> JSONRe
     errors = [
         FieldError(
             field=".".join(str(part) for part in error["loc"][1:]) or error["loc"][0],
-            message=error["msg"],
+            # A custom validator's message is its exception's text, so it is
+            # replaced by fixed text.
+            message="Value is not valid"
+            if error["type"] == "value_error"
+            else error["msg"],
         )
         for error in exc.errors()
     ]
     return _response(ProblemError(ProblemType.invalid, errors=errors).problem)
+
+
+async def _http_handler(request: Request, exc: StarletteHTTPException) -> Response:
+    """An unknown path is `not_found`. Other HTTP errors, such as 405, keep
+    Starlette's answer, because the contract has no type for them."""
+    if exc.status_code == 404:
+        return _response(ProblemError(ProblemType.not_found).problem)
+    return await http_exception_handler(request, exc)

@@ -29,4 +29,5 @@ class QuietHours(Dto):
 class Reminders(Dto):
     enabled: bool
     when_lead_below: int = Field(ge=0)
-    quiet_hours: QuietHours | None
+    # Optional in the contract: a client may leave it out for none.
+    quiet_hours: QuietHours | None = None

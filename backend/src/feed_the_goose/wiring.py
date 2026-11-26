@@ -15,7 +15,10 @@ from feed_the_goose.identity.auth0 import Auth0Verifier
 from feed_the_goose.identity.dev import DevIdentityTokens, check_development_guard
 from feed_the_goose.services.accounts import AccountService, NoIdentityAdmin
 from feed_the_goose.services.auth import AuthService
+from feed_the_goose.services.chase import ChaseService
+from feed_the_goose.services.days import DaysService
 from feed_the_goose.services.habits import HabitService
+from feed_the_goose.services.logs import LogService
 
 if TYPE_CHECKING:
     from feed_the_goose.identity import IdentityVerifier
@@ -31,6 +34,8 @@ class Wiring:
     auth: AuthService
     accounts: AccountService
     habits: HabitService
+    chase: ChaseService
+    logs: LogService
     # Present only when the dev sign-in is on, outside production.
     dev_tokens: DevIdentityTokens | None
 
@@ -65,6 +70,9 @@ def build(
             )
         )
 
+    days = DaysService(settings=settings, sessions=sessions)
+    chase = ChaseService(settings=settings, clock=clock, days=days)
+
     return Wiring(
         settings=settings,
         clock=clock,
@@ -79,5 +87,7 @@ def build(
             identity_admin=NoIdentityAdmin(),
         ),
         habits=HabitService(settings=settings, clock=clock, sessions=sessions),
+        chase=chase,
+        logs=LogService(settings=settings, clock=clock, days=days, chase=chase),
         dev_tokens=dev_tokens,
     )

@@ -2,8 +2,11 @@
 
 A habit app for iOS. A goose chases you all day, and every habit you log throws it bread.
 
-**Status:** design exploration. There is no app code yet. The clickable prototypes that
-settled the design are in [`docs/prototypes`](docs/prototypes).
+**Status:** planned, not built. There is no app code yet. The clickable prototypes that
+settled the design are in [`docs/prototypes`](docs/prototypes), and the plan for v1 is in the
+[constitution](CONSTITUTION.md), the [PRD](docs/product/prds/01-v1.md), the
+[design doc](docs/technical/tdds/01-v1.md) and the
+[work breakdown](docs/technical/tickets/01-v1.md).
 
 | A crust lands | The goose is fed | The goose catches you |
 | --- | --- | --- |
@@ -95,7 +98,12 @@ needed Swift, and I found nothing equivalent for Tauri.
 
 | Path | Contents |
 | --- | --- |
+| [`CONSTITUTION.md`](CONSTITUTION.md) | The commitments that bind the project and the agents building it. |
+| [`docs/CONTEXT.md`](docs/CONTEXT.md) | The vocabulary. |
+| [`docs/product/prds`](docs/product/prds) | What v1 does and how to tell that it works. |
+| [`docs/technical`](docs/technical) | The API spec, the v1 design doc and the tickets. |
 | [`docs/prototypes`](docs/prototypes) | Six clickable prototypes, their source, screenshots, animation GIFs, and the scripts that capture them. |
+| [`spikes/swiftui-goose`](spikes/swiftui-goose) | A throwaway SwiftUI port of the goose rig and three clips, kept as a reference. |
 
 To try a prototype, clone the repository and open any `docs/prototypes/*.html` file in a
 browser. They need no server and no network.

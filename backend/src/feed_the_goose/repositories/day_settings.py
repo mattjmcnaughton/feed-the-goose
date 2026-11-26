@@ -18,6 +18,11 @@ class DaySettingsRepository:
         await self._session.flush()
         return row
 
+    async def delete(self, row: DaySettings) -> None:
+        """Remove a row that has not taken effect yet."""
+        await self._session.delete(row)
+        await self._session.flush()
+
     async def for_user(self, user_id: UUID) -> list[DaySettings]:
         """Every row of the user's, oldest `effective_from` first."""
         rows = await self._session.scalars(

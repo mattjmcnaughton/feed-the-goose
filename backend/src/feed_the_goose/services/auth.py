@@ -62,7 +62,6 @@ class SignedIn:
     token: str
     session: Session
     user: User
-    day_settings: list[DaySettings]
 
 
 @dataclass(frozen=True)
@@ -124,10 +123,7 @@ class AuthService:
                     expires_at=now + self._lifetime,
                 )
             )
-            day_settings = await DaySettingsRepository(db).for_user(user.id)
-        return SignedIn(
-            token=token, session=session, user=user, day_settings=day_settings
-        )
+        return SignedIn(token=token, session=session, user=user)
 
     async def authenticate(
         self, secret: str, kinds: Collection[CredentialKind]

@@ -24,7 +24,7 @@ WiringDep = Annotated[Wiring, Depends(wiring)]
 )
 async def create_session(body: SessionCreate, w: WiringDep) -> SessionCreated:
     """Swap an identity token for an app session. Creates the account on first use."""
-    return await controller.create_session(w.auth, w.clock, body)
+    return await controller.create_session(w.auth, w.accounts, body)
 
 
 @router.get(

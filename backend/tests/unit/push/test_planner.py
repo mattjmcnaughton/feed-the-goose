@@ -14,7 +14,7 @@ import pytest
 
 from feed_the_goose.domain.chase import HabitTarget, LogEntry, chase_at
 from feed_the_goose.domain.day import DaySettings, day_window
-from feed_the_goose.push.planner import Preferences, ReminderKind, plan
+from feed_the_goose.push.planner import Preferences, ReminderKind, payload, plan
 
 NEW_YORK = ZoneInfo("America/New_York")
 DAY = day_window(
@@ -155,3 +155,35 @@ def test_plan(lead, logs, at, quiet, expected):
     planned = plan(DAY, chase, preferences, remind_before=timedelta(hours=1))
 
     assert [(r.kind, r.due_at) for r in planned] == expected
+
+
+@pytest.mark.parametrize(
+    ("before", "caught", "day_end"),
+    [
+        (timedelta(hours=1), "You'll be caught in an hour", "Your day ends in an hour"),
+        (timedelta(hours=2), "You'll be caught in 2 hours", "Your day ends in 2 hours"),
+        (
+            timedelta(minutes=90),
+            "You'll be caught in 90 minutes",
+            "Your day ends in 90 minutes",
+        ),
+        (
+            timedelta(minutes=1),
+            "You'll be caught in a minute",
+            "Your day ends in a minute",
+        ),
+        (
+            timedelta(seconds=45),
+            "You'll be caught in 45 seconds",
+            "Your day ends in 45 seconds",
+        ),
+    ],
+)
+def test_the_reminder_says_how_far_ahead_it_is_sent(before, caught, day_end):
+    def title(kind):
+        sent = payload(
+            kind, date(2026, 11, 26), when_lead_below=30, remind_before=before
+        )
+        return sent["aps"]["alert"]["title"]
+
+    assert (title(BEFORE_CAUGHT), title(BEFORE_DAY_END)) == (caught, day_end)

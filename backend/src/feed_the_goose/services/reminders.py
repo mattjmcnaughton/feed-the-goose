@@ -123,11 +123,12 @@ class ReminderService:
                 quiet_hours=_preferences(user).quiet_hours,
                 time_zone=ensured.calendar.settings_for(current.date).time_zone,
             )
+            remind_before = timedelta(seconds=self._settings.reminder_before_seconds)
             reminders = planner.plan(
                 record.window,
                 record.chase_at(now),
                 preferences,
-                remind_before=timedelta(seconds=self._settings.reminder_before_seconds),
+                remind_before=remind_before,
             )
             await PushJobRepository(db).replace_unsent(
                 user.id,
@@ -140,6 +141,7 @@ class ReminderService:
                             r.kind,
                             current.date,
                             when_lead_below=user.reminder_lead_below,
+                            remind_before=remind_before,
                         ),
                     )
                     for r in reminders
